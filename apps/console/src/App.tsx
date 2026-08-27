@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import './styles/index.css';
 
 type Tab = 'incidents' | 'approvals' | 'compiler';
