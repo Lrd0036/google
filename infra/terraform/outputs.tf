@@ -21,6 +21,9 @@ output "console_service_url" {
   value = module.cloud_run.console_url
 }
 
+output "authority_service_url" { value = module.cloud_run.authority_url }
+output "audit_writer_service_url" { value = module.cloud_run.audit_writer_url }
+
 output "artifact_repository_url" {
   value = module.artifact_registry.repository_url
 }

@@ -11,7 +11,8 @@
     "./runbookbench": "./runbookbench.schema.json",
     "./action-grant": "./action-grant.schema.json",
     "./approval-assertion": "./approval-assertion.schema.json",
-    "./execution-state": "./execution-state.schema.json"
+    "./execution-state": "./execution-state.schema.json",
+    "./release-attestation": "./release-attestation.schema.json"
   },
   "files": [
     "*.schema.json"

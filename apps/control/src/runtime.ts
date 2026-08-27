@@ -145,13 +145,14 @@ export interface FirestoreStateStore {
   executionRef(executionId: string): DocumentReference<ExecutionDocument>;
   eventRef(executionId: string, sequence: number): DocumentReference<RuntimeEvent>;
   approvalRef(executionId: string, approvalId: string): DocumentReference<Record<string, unknown>>;
+  outboxRef(executionId: string, sequence: number): DocumentReference<Record<string, unknown>>;
   runTransaction<T>(callback: (transaction: Transaction) => Promise<T>): Promise<T>;
 }
 
 export class FirestoreExecutionStore implements FirestoreStateStore {
-  public constructor(private readonly firestore: Firestore) {}
+  public constructor(private readonly firestore: Firestore, private readonly collection = 'executions') {}
   public executionRef(executionId: string): DocumentReference<ExecutionDocument> {
-    return this.firestore.collection('executions').doc(requireFirestoreDocumentId(executionId, 'execution id')) as DocumentReference<ExecutionDocument>;
+    return this.firestore.collection(this.collection).doc(requireFirestoreDocumentId(executionId, 'execution id')) as DocumentReference<ExecutionDocument>;
   }
   public eventRef(executionId: string, sequence: number): DocumentReference<RuntimeEvent> {
     if (!Number.isInteger(sequence) || sequence < 1) throw new Error('INVALID_EVENT_SEQUENCE');
@@ -159,6 +160,9 @@ export class FirestoreExecutionStore implements FirestoreStateStore {
   }
   public approvalRef(executionId: string, approvalId: string): DocumentReference<Record<string, unknown>> {
     return this.executionRef(executionId).collection('approvals').doc(requireFirestoreDocumentId(approvalId, 'approval record id'));
+  }
+  public outboxRef(executionId: string, sequence: number): DocumentReference<Record<string, unknown>> {
+    return this.firestore.doc(`v1_audit_outbox/${requireFirestoreDocumentId(executionId, 'execution id')}:${sequence}`);
   }
   public runTransaction<T>(callback: (transaction: Transaction) => Promise<T>): Promise<T> {
     return this.firestore.runTransaction(callback);
@@ -217,6 +221,7 @@ export class ExecutionController {
       const updated: ExecutionDocument = { ...execution, status, pending_approval: pendingApproval, cursor: { active_tokens: { main: { node_id: result.nextNodeId, node_attempt: 1 } }, state_version: execution.cursor.state_version + 1 }, last_event_sequence: event.sequence, last_event_hash: event.event_hash, updated_at: now.toISOString() };
       tx.update(ref, updated as unknown as Record<string, unknown>);
       tx.create(this.store.eventRef(executionId, event.sequence), event);
+      tx.create(this.store.outboxRef(executionId, event.sequence), { execution_id: executionId, sequence: event.sequence, event, status: 'PENDING', created_at: now.toISOString() });
       return updated;
     });
   }
@@ -231,6 +236,7 @@ export class ExecutionController {
       const updated = { ...execution, status: 'SUSPENDED_APPROVAL' as const, pending_approval: approval, cursor: { ...execution.cursor, state_version: execution.cursor.state_version + 1 }, last_event_sequence: event.sequence, last_event_hash: event.event_hash, updated_at: now.toISOString() };
       tx.update(ref, updated);
       tx.create(this.store.eventRef(executionId, event.sequence), event);
+      tx.create(this.store.outboxRef(executionId, event.sequence), { execution_id: executionId, sequence: event.sequence, event, status: 'PENDING', created_at: now.toISOString() });
       return updated;
     });
   }
@@ -268,6 +274,7 @@ export class ExecutionController {
       tx.create(approvalRef, { ...input, recorded_at: now.toISOString() });
       tx.update(ref, updated);
       tx.create(this.store.eventRef(input.execution_id, event.sequence), event);
+      tx.create(this.store.outboxRef(input.execution_id, event.sequence), { execution_id: input.execution_id, sequence: event.sequence, event, status: 'PENDING', created_at: now.toISOString() });
       return updated;
     });
   }

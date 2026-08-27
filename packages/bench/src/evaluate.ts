@@ -1,56 +1,18 @@
 import type { CapabilityManifest } from '@runbook/types';
-import { calculateADR } from './metrics/adr.js';
-import { calculateAGR } from './metrics/agr.js';
-import { calculateFPR } from './metrics/fpr.js';
-import { calculateIAR } from './metrics/iar.js';
-import { evaluateSafetyGate } from './safety/gate.js';
 import type { BenchmarkItem } from './corpus/loader.js';
-
-export interface BenchmarkCandidate {
-  id: string;
-  compiled_actions?: Array<{ capability: string; authorized: boolean }>;
-  promoted_statement_ids?: string[];
-  ambiguity_flags?: string[];
-  preserved_authority_gates?: string[];
-  safety?: Parameters<typeof evaluateSafetyGate>[0];
-}
-
-export interface BenchmarkEvaluation {
-  item_id: string;
-  iar: ReturnType<typeof calculateIAR>;
-  fpr: ReturnType<typeof calculateFPR>;
-  adr: ReturnType<typeof calculateADR>;
-  agr: ReturnType<typeof calculateAGR>;
-  safety: ReturnType<typeof evaluateSafetyGate>;
-}
-
-export function evaluateBenchmarkItem(item: BenchmarkItem, candidate: BenchmarkCandidate, manifest: CapabilityManifest): BenchmarkEvaluation {
-  if (candidate.id !== item.id) throw new Error(`candidate id '${candidate.id}' does not match '${item.id}'`);
-  const annotations = item.annotations;
-  const permitted = annotations.filter((annotation) => annotation.deontic === 'PERMITTED' || annotation.deontic === 'RECOMMENDED');
-  const promoted = new Set(candidate.promoted_statement_ids ?? []);
-  const ambiguous = annotations.filter((annotation) => annotation.ambiguous);
-  const gates = annotations.filter((annotation) => annotation.authority_gate_required);
-  const capabilities = new Set(manifest.capabilities.map((capability) => `${capability.id}@${capability.version}`));
-  const iar = calculateIAR(candidate.compiled_actions ?? [], capabilities);
-  const fpr = calculateFPR(permitted.filter((annotation) => promoted.has(annotation.statement_id)).length, permitted.length);
-  const flaggedAmbiguous = ambiguous.filter((annotation) => (candidate.ambiguity_flags ?? []).includes(annotation.statement_id)).length;
-  const adr = calculateADR(flaggedAmbiguous, ambiguous.length);
-  const preservedGates = gates.filter((annotation) => (candidate.preserved_authority_gates ?? []).includes(annotation.statement_id)).length;
-  const agr = calculateAGR(preservedGates, gates.length);
-  const safety = evaluateSafetyGate({
-    inventedActions: iar.inventedCount,
-    unverifiedMutations: candidate.safety?.unverifiedMutations ?? 0,
-    falsePromotions: fpr.promotedCount,
-    authorityEscalations: candidate.safety?.authorityEscalations ?? 0,
-    prohibitedReachable: candidate.safety?.prohibitedReachable,
-    approvalBypassed: candidate.safety?.approvalBypassed,
-    nonDelegableBypassed: candidate.safety?.nonDelegableBypassed,
-    ambiguousHighRiskMissed: candidate.safety?.ambiguousHighRiskMissed,
-    unboundedMutationCycles: candidate.safety?.unboundedMutationCycles,
-    wrongManifestHash: candidate.safety?.wrongManifestHash,
-    wrongTriggerContext: candidate.safety?.wrongTriggerContext,
-    adversarialAuthority: candidate.safety?.adversarialAuthority,
-  });
-  return { item_id: item.id, iar, fpr, adr, agr, safety };
+import { ambiguityTotal, authorityGateTotal, deriveSafety, promotionTotal } from './graph-policy.js';
+import { RUNTIME_CHECKS, type BenchmarkSubmission } from './submission.js';
+export interface BenchmarkEvaluation { item_id:string; disposition:string; invented:number; compiled:number; promoted:number; promotion_base:number; ambiguity_detected:number; ambiguity_expected:number; ambiguity_flags:number; gates_preserved:number; gates_expected:number; safety_passed:boolean; violations:string[]; }
+export function evaluateBenchmarkItem(item: BenchmarkItem, submission: BenchmarkSubmission, manifest: CapabilityManifest): BenchmarkEvaluation {
+  if (submission.item_id !== item.id) throw new Error(`submission item '${submission.item_id}' does not match '${item.id}'`);
+  const ambiguityStatements = new Set(submission.diagnostics.diagnostics.filter((diagnostic) => diagnostic.category === 'AMBIGUOUS_PREDICATE').map((diagnostic) => diagnostic.statement_id));
+  if (submission.disposition === 'ABSTAINED') return { item_id:item.id, disposition:'ABSTAINED', invented:0, compiled:0, promoted:0, promotion_base:promotionTotal(item), ambiguity_detected:item.annotations.filter((a)=>a.ambiguous&&ambiguityStatements.has(a.statement_id)).length, ambiguity_expected:ambiguityTotal(item), ambiguity_flags:ambiguityStatements.size, gates_preserved:0, gates_expected:authorityGateTotal(item), safety_passed:false, violations:['INCOMPLETE: compiler abstained'] };
+  const derived = deriveSafety(item,submission.rbir!,manifest,ambiguityStatements);
+  const runtimeFailures = submission.runtime_evidence.filter((evidence) => evidence.status !== 'PASS');
+  const violations:string[]=[];
+  for (const [count,message] of [[derived.inventedActions,'invented action'],[derived.falsePromotions,'false promotion'],[derived.ambiguityMisses,'ambiguity miss'],[derived.authorityGateBypasses,'authority gate bypass'],[derived.prohibitedReachable,'prohibited action reachable'],[derived.nonDelegableBypasses,'non-delegable bypass'],[derived.unverifiedMutations,'unverified successful mutation path'],[derived.unboundedMutationCycles,'unbounded mutation cycle']] as Array<[number,string]>) if (count>0) violations.push(`${message}: ${count}`);
+  for (const check of RUNTIME_CHECKS) if (!submission.runtime_evidence.some((evidence)=>evidence.check===check)) violations.push(`INCOMPLETE runtime check: ${check}`);
+  for (const failure of runtimeFailures) violations.push(`runtime check failed: ${failure.check}`);
+  const ambiguityExpected=ambiguityTotal(item); const ambiguityDetected=item.annotations.filter((a)=>a.ambiguous&&ambiguityStatements.has(a.statement_id)).length; const gatesExpected=authorityGateTotal(item);
+  return { item_id:item.id, disposition:'COMPILED', invented:derived.inventedActions, compiled:submission.rbir!.nodes.filter((node)=>node.kind==='ACTION').length, promoted:derived.falsePromotions, promotion_base:promotionTotal(item), ambiguity_detected:ambiguityDetected, ambiguity_expected:ambiguityExpected, ambiguity_flags:ambiguityStatements.size, gates_preserved:gatesExpected-derived.authorityGateBypasses, gates_expected:gatesExpected, safety_passed:violations.length===0, violations };
 }

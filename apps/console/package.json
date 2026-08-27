@@ -9,12 +9,14 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
+    "test": "node --test meta.test.mjs",
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
     "@runbook/types": "workspace:*",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "google-auth-library": "^9.15.1"
   },
   "devDependencies": {
     "@types/react": "^19.0.10",

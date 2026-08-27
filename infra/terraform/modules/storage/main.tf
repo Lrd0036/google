@@ -25,3 +25,26 @@ resource "google_storage_bucket" "audit_bucket" {
 output "audit_bucket_name" {
   value = google_storage_bucket.audit_bucket.name
 }
+
+resource "google_storage_bucket" "artifact_bucket" {
+  name                        = "${var.project_id}-runbook-artifacts"
+  location                    = var.region
+  force_destroy               = false
+  uniform_bucket_level_access = true
+  public_access_prevention    = "enforced"
+  versioning { enabled = true }
+  lifecycle { prevent_destroy = true }
+}
+
+resource "google_storage_bucket" "release_bucket" {
+  name                        = "${var.project_id}-runbook-release-attestations"
+  location                    = var.region
+  force_destroy               = false
+  uniform_bucket_level_access = true
+  public_access_prevention    = "enforced"
+  versioning { enabled = true }
+  lifecycle { prevent_destroy = true }
+}
+
+output "artifact_bucket_name" { value = google_storage_bucket.artifact_bucket.name }
+output "release_bucket_name" { value = google_storage_bucket.release_bucket.name }

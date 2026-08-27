@@ -35,3 +35,24 @@ variable "lock_audit_retention" {
   type        = bool
   default     = false
 }
+
+variable "cloud_execution_enabled" {
+  description = "Allow Control to create cloud executions; defaults closed"
+  type        = bool
+  default     = false
+}
+variable "broker_mutations_enabled" {
+  description = "Allow Broker to evaluate WRITE requests; attestation remains mandatory"
+  type        = bool
+  default     = false
+}
+variable "enable_invocation_edges" {
+  description = "Restore service invocation edges only after gate evidence exists"
+  type        = bool
+  default     = false
+}
+variable "iap_bootstrap_user" {
+  description = "Initial IAP user granted Console access"
+  type        = string
+  default     = "user:user@example.com"
+}

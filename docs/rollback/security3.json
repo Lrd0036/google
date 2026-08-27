@@ -1,0 +1,17 @@
+{
+  "schema": "runbook-rollback/v0.1",
+  "baseline": "security3",
+  "captured_at": "2026-08-27T15:30:00Z",
+  "project_id": "project-87ae1ae6-1a71-468d-943",
+  "region": "us-central1",
+  "code_revision": "f146919",
+  "images": {
+    "rb-control": "sha256:d65984799582c926b52bafa529f952331e60b69c1020beb04a4819b9f7d2e01a",
+    "rb-broker": "sha256:76e4ad98a4bfa9b41e24f3cbb30ec016b781c39154f29440179325922b775b2c",
+    "rb-console": "sha256:5821156bb970201510056fd3ccfa9249fc8a07e9d956b37afa36b9be2b3f73fd",
+    "acme-worker": "sha256:04df5490a777af4a3f30c7b55c104b3ef427fa9aa57cb06f7bdaf63a512eeb83"
+  },
+  "feature_flags": { "CLOUD_EXECUTION_ENABLED": false, "BROKER_MUTATIONS_ENABLED": false, "enable_invocation_edges": false },
+  "state_compatibility": { "old_code_collections": ["executions", "operations", "grant_replays"], "preserved_unread_collections": ["v1_executions", "v1_operations", "v1_grant_replays", "v1_audit_outbox", "v1_release_state"] },
+  "rollback_rule": "Deploy exact digests, disable all three flags, and remove Console-to-Authority, Authority-to-Control, PubSub-to-Control, Control-to-Broker, and Broker-to-Worker invoker bindings. Preserve v1 state."
+}

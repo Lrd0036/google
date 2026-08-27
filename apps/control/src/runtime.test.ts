@@ -69,6 +69,7 @@ test('approval quorum requires distinct principals before resuming', async () =>
   const store = {
     executionRef: (id: string) => ref(`executions/${id}`),
     eventRef: (id: string, sequence: number) => ref(`executions/${id}/events/${sequence}`),
+    outboxRef: (id: string, sequence: number) => ref(`v1_audit_outbox/${id}:${sequence}`),
     approvalRef: (id: string, approvalId: string) => ref(`executions/${id}/approvals/${approvalId}`),
     runTransaction: async (callback: (transaction: any) => Promise<unknown>) => callback({
       get: async (reference: { path: string }) => ({ exists: records.has(reference.path), data: () => records.get(reference.path) }),
@@ -96,6 +97,7 @@ test('approval transitions fail closed without a stored trusted graph', async ()
   const store = {
     executionRef: (id: string) => ({ path: `executions/${id}` }),
     eventRef: (id: string, sequence: number) => ({ path: `executions/${id}/events/${sequence}` }),
+    outboxRef: (id: string, sequence: number) => ({ path: `v1_audit_outbox/${id}:${sequence}` }),
     approvalRef: (id: string, approvalId: string) => ({ path: `executions/${id}/approvals/${approvalId}` }),
     runTransaction: async (callback: (transaction: any) => Promise<unknown>) => callback({
       get: async (reference: { path: string }) => ({ exists: records.has(reference.path), data: () => records.get(reference.path) }),

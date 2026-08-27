@@ -1,0 +1,25 @@
+{
+  "name": "@runbook/release-gate",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": { "runbook-release-gate": "./dist/cli.js" },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm build && node --test dist/*.test.js",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^7.11.0",
+    "@google-cloud/kms": "^4.5.0",
+    "@google-cloud/storage": "^7.16.0",
+    "@runbook/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "typescript": "^5.7.3"
+  }
+}

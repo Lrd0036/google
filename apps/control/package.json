@@ -39,13 +39,14 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm build && node --test dist/runtime.test.js dist/authority.test.js dist/resume-events.test.js dist/scheduler.test.js",
+    "test": "pnpm build && node --test dist/*.test.js",
     "start": "node dist/index.js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
     "@google-cloud/firestore": "^7.11.0",
     "@google-cloud/kms": "^4.5.0",
+    "@google-cloud/storage": "^7.16.0",
     "google-auth-library": "^9.15.1",
     "@runbook/types": "workspace:*"
   },

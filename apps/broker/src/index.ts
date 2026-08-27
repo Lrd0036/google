@@ -2,19 +2,34 @@ import { createServer } from 'node:http';
 import { Firestore } from '@google-cloud/firestore';
 import { KeyManagementServiceClient } from '@google-cloud/kms';
 import { dispatchActionGrant, BrokerError, CircuitBreaker, FirestoreExecutionFenceStore, FirestoreGrantReplayStore, FirestoreOperationStore, MemoryGrantReplayStore, MemoryOperationStore, MetricsRegistry } from './broker.js';
+import { ActiveReleaseMutationGate, FirestoreGcsReleaseSource } from './release-gate.js';
 
 export * from './broker.js';
+export * from './release-gate.js';
 
 const port = Number(process.env.PORT || 8081);
 const firestore = process.env.GCP_PROJECT || process.env.FIRESTORE_EMULATOR_HOST ? new Firestore({ projectId: process.env.GCP_PROJECT || 'runbook-local-dev' }) : undefined;
-const store = firestore ? new FirestoreOperationStore(firestore) : new MemoryOperationStore();
-const replayStore = firestore ? new FirestoreGrantReplayStore(firestore) : new MemoryGrantReplayStore();
+const stateSchema = process.env.STATE_SCHEMA ?? 'runtime/v1';
+const v1State = stateSchema === 'runtime/v1';
+const store = firestore ? new FirestoreOperationStore(firestore, v1State ? 'v1_operations' : 'operations') : new MemoryOperationStore();
+const replayStore = firestore ? new FirestoreGrantReplayStore(firestore, v1State ? 'v1_grant_replays' : 'grant_replays') : new MemoryGrantReplayStore();
 const circuitBreakers = new Map<string, CircuitBreaker>();
 const metrics = new MetricsRegistry();
 const kms = process.env.KMS_KEY_VERSION ? new KeyManagementServiceClient() : undefined;
 const requireAuthoritativeFence = process.env.REQUIRE_AUTHORITATIVE_FENCE === 'true';
 if (requireAuthoritativeFence && !firestore) throw new Error('REQUIRE_AUTHORITATIVE_FENCE needs Firestore configuration');
-const fenceStore = requireAuthoritativeFence && firestore ? new FirestoreExecutionFenceStore(firestore) : undefined;
+const fenceStore = requireAuthoritativeFence && firestore ? new FirestoreExecutionFenceStore(firestore, v1State ? 'v1_executions' : 'executions') : undefined;
+const mutationsEnabled = process.env.BROKER_MUTATIONS_ENABLED === 'true';
+const releaseKeyId = process.env.RELEASE_KMS_KEY_VERSION ?? '';
+const releaseGate = mutationsEnabled && firestore && releaseKeyId ? new ActiveReleaseMutationGate(new FirestoreGcsReleaseSource(firestore), {
+  projectId: process.env.GCP_PROJECT ?? '',
+  region: process.env.GCP_REGION ?? '',
+  stateSchema: 'runtime/v1',
+  imageDigests: process.env.BROKER_IMAGE_DIGEST ? { 'rb-broker': process.env.BROKER_IMAGE_DIGEST } : {},
+  terraformPlanSha256: process.env.TERRAFORM_PLAN_SHA256,
+  releaseKeyId,
+}) : undefined;
+if (mutationsEnabled && !releaseGate) throw new Error('BROKER_MUTATIONS_ENABLED requires Firestore and RELEASE_KMS_KEY_VERSION');
 const allowedOrigins = (process.env.ALLOWED_CAPABILITY_ORIGINS ?? '').split(',').map((value) => value.trim()).filter(Boolean);
 const maxJsonBodyBytes = Number(process.env.MAX_JSON_BODY_BYTES || 1_048_576);
 
@@ -71,6 +86,7 @@ const server = createServer(async (req, res) => {
           allowedOrigins,
           metrics,
           circuitBreaker: circuitBreakers.get(breakerKey) ?? circuitBreakers.set(breakerKey, new CircuitBreaker()).get(breakerKey),
+          mutationGate: releaseGate,
         });
         send(res, 200, result);
     } catch (error: unknown) {

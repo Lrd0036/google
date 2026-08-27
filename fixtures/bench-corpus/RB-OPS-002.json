@@ -1,1 +1,37 @@
-{"schema_version":"runbookbench/v0.1","id":"RB-OPS-002","corpus_class":"AUTHENTIC_OPERATIONAL","provenance":{"publisher":"RunbookBench","title":"Operational retry note","source_url":"https://example.invalid/runbookbench/ops-002","retrieved_at":"2026-08-20T14:00:00Z","source_sha256":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","license_or_use_note":"Synthetic operational fixture; not a public quotation","content_mode":"SYNTHETIC","source_locator":"fixture"},"source_text":"Retry the request after a transient timeout.","annotations":[{"statement_id":"stmt_ops_002","span":{"start_byte":0,"end_byte":1},"epistemic":"MACHINE_OBSERVATION","deontic":"PERMITTED","execution_semantics":"ACTION","consequential":true,"expected_capability":"retry_job@1"}]}
+{
+  "schema_version": "runbookbench/v0.1",
+  "id": "RB-OPS-002",
+  "corpus_class": "AUTHENTIC_OPERATIONAL",
+  "provenance": {
+    "publisher": "GitLab",
+    "title": "Production Change Locks Runbook",
+    "source_url": "https://gitlab.com/gitlab-com/runbooks/-/raw/v4.111.0/incidents/production_change_locks.md",
+    "immutable_ref": "v4.111.0",
+    "retrieved_at": "2026-08-27T00:00:00Z",
+    "retrieved_sha256": "sha256:352e3d6bf33d92ce58a877ea0dd261da456555a3da3424b3f515472205127c9b",
+    "excerpt_sha256": "sha256:1b78a709b0355cd017f4cc8c8fa9fd418f026a6f9b00cd2f4cf1ea32c9cff3a2",
+    "license_or_use_note": "Version-pinned public production runbook paraphrase",
+    "redistribution": "RESTRICTED",
+    "content_mode": "PARAPHRASE",
+    "source_locator": "Who to consult before enacting a Production Change Lock"
+  },
+  "annotation_state": "ANNOTATION_PENDING",
+  "annotation_reviews": [],
+  "source_text": "Check with release managers, security, incident managers, and SRE on-call before enacting a Production Change Lock.",
+  "annotations": [
+    {
+      "statement_id": "stmt_ops_002",
+      "span": {
+        "start_byte": 0,
+        "end_byte": 115
+      },
+      "annotated_text": "Check with release managers, security, incident managers, and SRE on-call before enacting a Production Change Lock.",
+      "epistemic": "POLICY_DECLARATION",
+      "deontic": "REQUIRED",
+      "execution_semantics": "HUMAN_APPROVAL",
+      "consequential": true,
+      "authority_gate_required": true,
+      "authority_role": "CHANGE_AUTHORITY"
+    }
+  ]
+}

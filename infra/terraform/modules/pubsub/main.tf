@@ -2,6 +2,7 @@ variable "project_id" { type = string }
 variable "project_number" { type = string }
 variable "control_resume_endpoint" { type = string }
 variable "push_service_account" { type = string }
+variable "enable_control_push" { type = bool }
 
 locals { pubsub_service_agent = "service-${var.project_number}@gcp-sa-pubsub.iam.gserviceaccount.com" }
 
@@ -15,7 +16,16 @@ resource "google_pubsub_topic" "resume_events" {
   name    = "rb-resume-events"
 }
 
+resource "google_pubsub_subscription" "dead_letter" {
+  project                    = var.project_id
+  name                       = "rb-execution-dlq-sub"
+  topic                      = google_pubsub_topic.dead_letter.id
+  ack_deadline_seconds       = 60
+  message_retention_duration = "604800s"
+}
+
 resource "google_pubsub_subscription" "resume_subscription" {
+  count                = var.enable_control_push ? 1 : 0
   project              = var.project_id
   name                 = "rb-resume-events-sub"
   topic                = google_pubsub_topic.resume_events.id
@@ -45,8 +55,9 @@ resource "google_pubsub_topic_iam_member" "dead_letter_publisher" {
 }
 
 resource "google_pubsub_subscription_iam_member" "forwarding_subscriber" {
+  count        = var.enable_control_push ? 1 : 0
   project      = var.project_id
-  subscription = google_pubsub_subscription.resume_subscription.name
+  subscription = google_pubsub_subscription.resume_subscription[0].name
   role         = "roles/pubsub.subscriber"
   member       = "serviceAccount:${local.pubsub_service_agent}"
 }

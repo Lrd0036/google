@@ -4,7 +4,7 @@ import test from 'node:test';
 import { dispatchActionGrant, MemoryGrantReplayStore, MemoryOperationStore, MetricsRegistry, canonicalJson, idempotencyKey, resolveCapabilityUrl, sha256, verifyActionGrant } from './broker.js';
 import type { CapabilityManifest } from '@runbook/types';
 
-const localDispatchPolicy = { allowRequestCarriedFence: true, allowedOrigins: ['https://example.test'] } as const;
+const localDispatchPolicy = { allowRequestCarriedFence: true, allowedOrigins: ['https://example.test'], mutationGate: { authorize: async () => undefined } } as const;
 
 test('broker enforces manifest binding and single-use grants', async () => {
   const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -34,7 +34,9 @@ test('reconcilable transport loss is persisted as uncertain', async () => {
   const unsigned = { typ: 'RB-ACTION-GRANT', version: '0.1', iss: 'rb-control', aud: 'rb-broker', jti: 'uncertain-jti', iat: now, exp: now + 60, execution_id: 'uncertain-exec', node_id: 'drain', node_attempt: 1, capability: 'drain@1', params_sha256: sha256(params), runbook_ir_sha256: sha256('ir'), manifest_sha256: sha256(manifest), trigger_sha256: sha256('trigger'), lease_generation: 1, control_epoch: 1, authority_assertion_ids: [] };
   const value = sign('sha256', Buffer.from(canonicalJson(unsigned)), { key: privateKey, padding: constants.RSA_PKCS1_PSS_PADDING, saltLength: 32 }).toString('base64');
   const store = new MemoryOperationStore();
-  await assert.rejects(() => dispatchActionGrant({ grant: { ...unsigned, signature: { algorithm: 'RSA-PSS-SHA256', key_id: 'local', value } }, params, manifest, lease: { owner: 'w', generation: 1, acquired_at: new Date().toISOString(), expires_at: new Date(Date.now() + 10_000).toISOString() }, controlEpoch: 1, publicKey: publicKey.export({ type: 'spki', format: 'pem' }).toString(), store, ...localDispatchPolicy, fetchImpl: async () => { throw new TypeError('socket closed'); } }), (error: unknown) => error instanceof Error && 'code' in error && error.code === 'OPERATION_UNCERTAIN');
+  const request = { grant: { ...unsigned, signature: { algorithm: 'RSA-PSS-SHA256' as const, key_id: 'local', value } }, params, manifest, lease: { owner: 'w', generation: 1, acquired_at: new Date().toISOString(), expires_at: new Date(Date.now() + 10_000).toISOString() }, controlEpoch: 1, publicKey: publicKey.export({ type: 'spki', format: 'pem' }).toString(), store, allowRequestCarriedFence: true, allowedOrigins: ['https://example.test'], fetchImpl: async () => { throw new TypeError('socket closed'); } };
+  await assert.rejects(() => dispatchActionGrant(request), (error: unknown) => error instanceof Error && 'code' in error && error.code === 'RELEASE_GATE_CLOSED');
+  await assert.rejects(() => dispatchActionGrant({ ...request, mutationGate: localDispatchPolicy.mutationGate }), (error: unknown) => error instanceof Error && 'code' in error && error.code === 'OPERATION_UNCERTAIN');
   assert.equal((await store.get(idempotencyKey('uncertain-exec', 'drain', 0)))?.status, 'UNCERTAIN');
 });
 

@@ -1,4 +1,5 @@
-import { createHash, sign, verify, type KeyObject } from 'node:crypto';
+import { createHash, createPublicKey, sign, verify, type KeyObject } from 'node:crypto';
+import type { Firestore } from '@google-cloud/firestore';
 import { ApprovalAssertionSchema, type ApprovalAssertion } from '@runbook/types';
 
 export interface ApprovalContext {
@@ -28,7 +29,7 @@ export function issueApprovalAssertion(context: ApprovalContext, principal: stri
   return ApprovalAssertionSchema.parse({ ...unsigned, signature: { algorithm: 'RSA-PSS-SHA256', value } });
 }
 
-export function verifyApprovalAssertion(assertion: unknown, publicKey: KeyObject, expected: ApprovalContext & { principal?: string; decision?: ApprovalAssertion['decision'] }, now = Math.floor(Date.now() / 1000)): ApprovalAssertion {
+export function verifyApprovalAssertion(assertion: unknown, publicKey: string | Buffer | KeyObject, expected: ApprovalContext & { principal?: string; decision?: ApprovalAssertion['decision'] }, now = Math.floor(Date.now() / 1000)): ApprovalAssertion {
   const parsed = ApprovalAssertionSchema.safeParse(assertion);
   if (!parsed.success) throw new Error('INVALID_APPROVAL_ASSERTION');
   const value = parsed.data;
@@ -36,7 +37,8 @@ export function verifyApprovalAssertion(assertion: unknown, publicKey: KeyObject
   if (expected.issuer && value.iss !== expected.issuer || expected.audience && value.aud !== expected.audience || expected.principal && value.sub !== expected.principal || expected.decision && value.decision !== expected.decision) throw new Error('APPROVAL_ASSERTION_CONTEXT_MISMATCH');
   for (const key of ['tenant_id', 'authority_id', 'execution_id', 'runbook_ir_sha256', 'node_id', 'trigger_sha256', 'target_scope_sha256'] as const) if (value[key] !== expected[key]) throw new Error('APPROVAL_ASSERTION_CONTEXT_MISMATCH');
   const { signature, ...unsigned } = value;
-  if (!verify('sha256', Buffer.from(canonicalJson(unsigned)), { key: publicKey, padding: 6, saltLength: 32 }, Buffer.from(signature.value, 'base64'))) throw new Error('INVALID_APPROVAL_SIGNATURE');
+  const verificationKey = typeof publicKey === 'string' || Buffer.isBuffer(publicKey) ? createPublicKey(publicKey) : publicKey;
+  if (!verify('sha256', Buffer.from(canonicalJson(unsigned)), { key: verificationKey, padding: 6, saltLength: 32 }, Buffer.from(signature.value, 'base64'))) throw new Error('INVALID_APPROVAL_SIGNATURE');
   return value;
 }
 
@@ -46,5 +48,18 @@ export class MemoryApprovalReplayStore {
     if (this.consumed.has(assertion.jti)) return false;
     this.consumed.add(assertion.jti);
     return true;
+  }
+}
+
+export class FirestoreApprovalReplayStore {
+  constructor(private readonly firestore: Firestore) {}
+  async consume(assertion: ApprovalAssertion): Promise<boolean> {
+    return this.firestore.runTransaction(async (transaction) => {
+      const ref = this.firestore.doc(`v1_approval_replays/${encodeURIComponent(assertion.jti)}`);
+      const existing = await transaction.get(ref);
+      if (existing.exists) return false;
+      transaction.create(ref, { jti: assertion.jti, expires_at: assertion.exp, consumed_at: new Date().toISOString() });
+      return true;
+    });
   }
 }

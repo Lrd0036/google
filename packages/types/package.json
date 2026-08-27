@@ -34,6 +34,10 @@
     "./state": {
       "types": "./dist/state.d.ts",
       "import": "./dist/state.js"
+    },
+    "./release-attestation": {
+      "types": "./dist/release-attestation.d.ts",
+      "import": "./dist/release-attestation.js"
     }
   },
   "scripts": {

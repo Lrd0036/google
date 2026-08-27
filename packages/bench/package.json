@@ -18,7 +18,7 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm build && node --test dist/metrics/semantic.test.js dist/safety/gate.test.js",
+    "test": "pnpm build && node --test dist/*.test.js dist/corpus/*.test.js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {

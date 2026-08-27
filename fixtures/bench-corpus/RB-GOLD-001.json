@@ -1,1 +1,37 @@
-{"schema_version":"runbookbench/v0.1","id":"RB-GOLD-001","corpus_class":"CONSTRUCTED_GOLDEN","provenance":{"publisher":"RunbookBench","title":"Golden approval path","source_url":"urn:runbookbench:golden:001","retrieved_at":"2026-08-20T14:00:00Z","source_sha256":"sha256:1111111111111111111111111111111111111111111111111111111111111111","license_or_use_note":"Constructed golden fixture","content_mode":"SYNTHETIC"},"source_text":"If lag is safe, an operator may promote the replica after approval.","annotations":[{"statement_id":"stmt_gold_001","span":{"start_byte":0,"end_byte":1},"epistemic":"POLICY_DECLARATION","deontic":"PERMITTED","execution_semantics":"ACTION","consequential":true,"expected_capability":"promote_replica@1","authority_gate_required":true}]}
+{
+  "schema_version": "runbookbench/v0.1",
+  "id": "RB-GOLD-001",
+  "corpus_class": "CONSTRUCTED_GOLDEN",
+  "provenance": {
+    "publisher": "RunbookBench",
+    "title": "Golden approval path",
+    "source_url": "urn:runbookbench:golden:001",
+    "retrieved_at": "2026-08-27T00:00:00Z",
+    "retrieved_sha256": "sha256:354b361d18484106aa226469f8ff21d48b914af9cb7072872185b6904b210c57",
+    "excerpt_sha256": "sha256:354b361d18484106aa226469f8ff21d48b914af9cb7072872185b6904b210c57",
+    "license_or_use_note": "Constructed golden fixture",
+    "redistribution": "CONSTRUCTED",
+    "content_mode": "CONSTRUCTED"
+  },
+  "annotation_state": "ANNOTATION_PENDING",
+  "annotation_reviews": [],
+  "source_text": "If lag is safe, an operator may promote the replica after approval.",
+  "annotations": [
+    {
+      "statement_id": "stmt_gold_001",
+      "span": {
+        "start_byte": 0,
+        "end_byte": 67
+      },
+      "annotated_text": "If lag is safe, an operator may promote the replica after approval.",
+      "epistemic": "POLICY_DECLARATION",
+      "deontic": "PERMITTED",
+      "execution_semantics": "ACTION",
+      "consequential": true,
+      "expected_capability": "promote_replica@1",
+      "ambiguous": true,
+      "authority_gate_required": true,
+      "authority_role": "INCIDENT_COMMANDER"
+    }
+  ]
+}

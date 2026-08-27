@@ -108,6 +108,10 @@ export interface ExecutionFenceStore {
   get(executionId: string): Promise<ExecutionFenceRecord | undefined>;
 }
 
+export interface ReleaseMutationGate {
+  authorize(input: { capability: string; manifestSha256: string; risk: CapabilityDefinition['risk'] }): Promise<void>;
+}
+
 /** In-memory replay protection for local development. Production should persist this atomically. */
 export class MemoryGrantReplayStore implements GrantReplayStore {
   private readonly consumed = new Map<string, number>();
@@ -171,10 +175,10 @@ export class FirestoreOperationStore implements OperationStore {
 
 /** Reads current Control-owned fencing state. Cloud dispatch must use this, never request-carried copies alone. */
 export class FirestoreExecutionFenceStore implements ExecutionFenceStore {
-  public constructor(private readonly firestore: Firestore) {}
+  public constructor(private readonly firestore: Firestore, private readonly collection = 'executions') {}
   async get(executionId: string): Promise<ExecutionFenceRecord | undefined> {
     if (!/^[A-Za-z0-9][A-Za-z0-9._:%+@-]{0,255}$/.test(executionId)) throw new BrokerError('INVALID_EXECUTION_ID', 'Execution ID is not a valid Firestore document identifier.');
-    const snapshot = await this.firestore.collection('executions').doc(executionId).get();
+    const snapshot = await this.firestore.collection(this.collection).doc(executionId).get();
     return snapshot.exists ? snapshot.data() as ExecutionFenceRecord : undefined;
   }
 }
@@ -229,6 +233,7 @@ export interface DispatchRequest extends GrantVerificationInput {
   fetchImpl?: typeof fetch;
   circuitBreaker?: CircuitBreaker;
   metrics?: MetricsRegistry;
+  mutationGate?: ReleaseMutationGate;
 }
 
 function verifyOperationTuple(record: OperationRecord, executionId: string, nodeId: string, operationGeneration: number): void {
@@ -269,6 +274,15 @@ export async function dispatchActionGrant(input: DispatchRequest): Promise<{ ope
   const capability = manifestResult.data.capabilities.find((candidate) => candidate.id === capabilityId && candidate.version === Number(capabilityVersion));
   if (!capability) throw new BrokerError('CAPABILITY_NOT_DECLARED', `Capability ${grant.capability} is not declared by the manifest.`);
   await verifyExecutionFence(input, grant);
+  if (capability.mode === 'WRITE') {
+    if (!input.mutationGate) throw new BrokerError('RELEASE_GATE_CLOSED', 'No active release authority permits mutating capabilities.', 503);
+    try {
+      await input.mutationGate.authorize({ capability: grant.capability, manifestSha256: grant.manifest_sha256, risk: capability.risk });
+    } catch (error) {
+      if (error instanceof BrokerError && error.code === 'RELEASE_GATE_CLOSED') throw error;
+      throw new BrokerError('RELEASE_GATE_CLOSED', error instanceof Error ? error.message : 'Release authority rejected the mutation.', 503);
+    }
+  }
   if (input.replayStore && !(await input.replayStore.consume(grant.jti, grant.exp))) { input.metrics?.increment('grant_replay_rejected_total'); throw new BrokerError('GRANT_REPLAYED', 'Action Grant jti has already been consumed.'); }
   const inputError = validateSchema(input.params, capability.input_schema);
   if (inputError) throw new BrokerError('INPUT_SCHEMA_VIOLATION', inputError);

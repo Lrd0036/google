@@ -29,3 +29,11 @@ resource "google_firestore_index" "execution_history_index" {
     order      = "DESCENDING"
   }
 }
+
+resource "google_firestore_backup_schedule" "daily" {
+  project   = var.project_id
+  database  = google_firestore_database.database.name
+  retention = "604800s"
+  daily_recurrence {}
+  deletion_policy = "ABANDON"
+}

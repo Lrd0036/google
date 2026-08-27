@@ -1,0 +1,6 @@
+{
+  "name": "@runbook/audit-writer", "version": "0.1.0", "private": true, "type": "module", "main": "./dist/index.js",
+  "scripts": { "build": "tsc -b", "typecheck": "tsc --noEmit", "test": "pnpm build && node --test dist/*.test.js", "start": "node dist/index.js", "clean": "rm -rf dist tsconfig.tsbuildinfo" },
+  "dependencies": { "@google-cloud/firestore": "^7.11.0", "@google-cloud/storage": "^7.16.0" },
+  "devDependencies": { "@types/node": "^22.13.5", "typescript": "^5.7.3" }
+}

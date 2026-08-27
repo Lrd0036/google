@@ -1,1 +1,34 @@
-{"schema_version":"runbookbench/v0.1","id":"RB-CONTRACT-001","corpus_class":"STRUCTURED_CONTRACT","provenance":{"publisher":"RunbookBench","title":"Capability contract","source_url":"urn:runbookbench:contract:001","retrieved_at":"2026-08-20T14:00:00Z","source_sha256":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","license_or_use_note":"Constructed contract fixture","content_mode":"SYNTHETIC"},"source_text":"capability retry_job@1 requires job_id.","annotations":[{"statement_id":"stmt_contract_001","span":{"start_byte":0,"end_byte":1},"epistemic":"DERIVED_FACT","deontic":"REQUIRED","execution_semantics":"DETERMINISTIC","consequential":false,"expected_capability":"retry_job@1"}]}
+{
+  "schema_version": "runbookbench/v0.1",
+  "id": "RB-CONTRACT-001",
+  "corpus_class": "STRUCTURED_CONTRACT",
+  "provenance": {
+    "publisher": "RunbookBench",
+    "title": "Capability contract",
+    "source_url": "urn:runbookbench:contract:001",
+    "retrieved_at": "2026-08-27T00:00:00Z",
+    "retrieved_sha256": "sha256:e0ac3ce053748377149979bc2ae99e11a4fa72748b0ad5cdff8f33434ae56801",
+    "excerpt_sha256": "sha256:e0ac3ce053748377149979bc2ae99e11a4fa72748b0ad5cdff8f33434ae56801",
+    "license_or_use_note": "Constructed contract fixture",
+    "redistribution": "CONSTRUCTED",
+    "content_mode": "CONSTRUCTED"
+  },
+  "annotation_state": "ANNOTATION_PENDING",
+  "annotation_reviews": [],
+  "source_text": "Capability retry_job@1 requires job_id.",
+  "annotations": [
+    {
+      "statement_id": "stmt_contract_001",
+      "span": {
+        "start_byte": 0,
+        "end_byte": 39
+      },
+      "annotated_text": "Capability retry_job@1 requires job_id.",
+      "epistemic": "DERIVED_FACT",
+      "deontic": "REQUIRED",
+      "execution_semantics": "DETERMINISTIC",
+      "consequential": false,
+      "expected_capability": "retry_job@1"
+    }
+  ]
+}
