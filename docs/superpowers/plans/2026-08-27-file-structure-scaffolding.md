@@ -36,12 +36,12 @@
 **Interfaces:**
 - Produces: Root workspace configuration for `packages/*`, `apps/*`, `infra/*`, and `fixtures/*`.
 
-- [ ] **Step 1: Create `pnpm-workspace.yaml`**
-- [ ] **Step 2: Create root `package.json` with monorepo scripts (`build`, `test`, `lint`, `typecheck`, `clean`)**
-- [ ] **Step 3: Create `tsconfig.base.json` with strict ES2022 / NodeNext settings**
-- [ ] **Step 4: Create `.gitignore` and `.editorconfig`**
-- [ ] **Step 5: Create root `README.md` summarizing the repository layout**
-- [ ] **Step 6: Commit workspace configuration**
+- [x] **Step 1: Create `pnpm-workspace.yaml`**
+- [x] **Step 2: Create root `package.json` with monorepo scripts (`build`, `test`, `lint`, `typecheck`, `clean`)**
+- [x] **Step 3: Create `tsconfig.base.json` with strict ES2022 / NodeNext settings**
+- [x] **Step 4: Create `.gitignore` and `.editorconfig`**
+- [x] **Step 5: Create root `README.md` summarizing the repository layout**
+- [x] **Step 6: Commit workspace configuration**
 
 ---
 
@@ -61,12 +61,12 @@
 - Consumes: JSON Schema Draft 2020-12 specifications from `spec.md`.
 - Produces: `@runbook/schemas` npm package distributing the formal JSON schemas.
 
-- [ ] **Step 1: Create `packages/schemas/package.json`**
-- [ ] **Step 2: Create `rbir.schema.json` with node primitives (`DETERMINISTIC`, `AGENT_JUDGMENT`, `ACTION`, `HUMAN_APPROVAL`, `VERIFY`, `TERMINAL`)**
-- [ ] **Step 3: Create `capability-manifest.schema.json` with capability transport, idempotency, and approval floor contracts**
-- [ ] **Step 4: Create `diagnostic.schema.json` with standard diagnostic error categories and source span schemas**
-- [ ] **Step 5: Create `runbookbench.schema.json`, `action-grant.schema.json`, `approval-assertion.schema.json`, and `execution-state.schema.json`**
-- [ ] **Step 6: Commit schemas package**
+- [x] **Step 1: Create `packages/schemas/package.json`**
+- [x] **Step 2: Create `rbir.schema.json` with node primitives (`DETERMINISTIC`, `AGENT_JUDGMENT`, `ACTION`, `HUMAN_APPROVAL`, `VERIFY`, `TERMINAL`)**
+- [x] **Step 3: Create `capability-manifest.schema.json` with capability transport, idempotency, and approval floor contracts**
+- [x] **Step 4: Create `diagnostic.schema.json` with standard diagnostic error categories and source span schemas**
+- [x] **Step 5: Create `runbookbench.schema.json`, `action-grant.schema.json`, `approval-assertion.schema.json`, and `execution-state.schema.json`**
+- [x] **Step 6: Commit schemas package**
 
 ---
 
@@ -87,12 +87,12 @@
 - Consumes: `@runbook/schemas`
 - Produces: `@runbook/types` with TypeScript types and Zod schemas for all domain entities.
 
-- [ ] **Step 1: Create `packages/types/package.json` and `tsconfig.json`**
-- [ ] **Step 2: Implement `src/rbir.ts` with Zod schemas and TypeScript types for all RBIR nodes and edges**
-- [ ] **Step 3: Implement `src/manifest.ts`, `src/diagnostic.ts`, and `src/authority.ts`**
-- [ ] **Step 4: Implement `src/grants.ts` and `src/state.ts`**
-- [ ] **Step 5: Export all modules via `src/index.ts`**
-- [ ] **Step 6: Commit types package**
+- [x] **Step 1: Create `packages/types/package.json` and `tsconfig.json`**
+- [x] **Step 2: Implement `src/rbir.ts` with Zod schemas and TypeScript types for all RBIR nodes and edges**
+- [x] **Step 3: Implement `src/manifest.ts`, `src/diagnostic.ts`, and `src/authority.ts`**
+- [x] **Step 4: Implement `src/grants.ts` and `src/state.ts`**
+- [x] **Step 5: Export all modules via `src/index.ts`**
+- [x] **Step 6: Commit types package**
 
 ---
 
@@ -115,13 +115,13 @@
 - Consumes: `@runbook/types`
 - Produces: `@runbook/compiler` with the `rbc` executable CLI and programmatic API.
 
-- [ ] **Step 1: Create `packages/compiler/package.json` and `tsconfig.json`**
-- [ ] **Step 2: Implement CommonMark structural block parser (`src/parser/markdown.ts`)**
-- [ ] **Step 3: Implement Base32 content-addressed statement ID generator (`src/statement/id.ts`)**
-- [ ] **Step 4: Implement static analyzer modules: CFG graph builder, Tarjan's SCC cycle detector, and mutation verification enforcer**
-- [ ] **Step 5: Implement diagnostic emitter (`src/diagnostics/emitter.ts`) and RBIR generator (`src/ir/builder.ts`)**
-- [ ] **Step 6: Implement CLI entrypoint (`src/cli.ts`) and library export (`src/index.ts`)**
-- [ ] **Step 7: Commit compiler package**
+- [x] **Step 1: Create `packages/compiler/package.json` and `tsconfig.json`**
+- [x] **Step 2: Implement CommonMark structural block parser (`src/parser/markdown.ts`)**
+- [x] **Step 3: Implement Base32 content-addressed statement ID generator (`src/statement/id.ts`)**
+- [x] **Step 4: Implement static analyzer modules: CFG graph builder, Tarjan's SCC cycle detector, and mutation verification enforcer**
+- [x] **Step 5: Implement diagnostic emitter (`src/diagnostics/emitter.ts`) and RBIR generator (`src/ir/builder.ts`)**
+- [x] **Step 6: Implement CLI entrypoint (`src/cli.ts`) and library export (`src/index.ts`)**
+- [x] **Step 7: Commit compiler package**
 
 ---
 
@@ -143,11 +143,11 @@
 - Consumes: `@runbook/types`, `@runbook/compiler`
 - Produces: `@runbook/bench` benchmark runner CLI and evaluation metrics library.
 
-- [ ] **Step 1: Create `packages/bench/package.json` and `tsconfig.json`**
-- [ ] **Step 2: Implement corpus loader (`src/corpus/loader.ts`) supporting the 5 corpus classes**
-- [ ] **Step 3: Implement metric calculators: IAR (fatal if > 0), FPR, ADR, and graph edit distance**
-- [ ] **Step 4: Implement Fatal Safety Gate evaluator and runner CLI (`src/cli.ts`)**
-- [ ] **Step 5: Commit bench package**
+- [x] **Step 1: Create `packages/bench/package.json` and `tsconfig.json`**
+- [x] **Step 2: Implement corpus loader (`src/corpus/loader.ts`) supporting the 5 corpus classes**
+- [x] **Step 3: Implement metric calculators: IAR (fatal if > 0), FPR, ADR, and graph edit distance**
+- [x] **Step 4: Implement Fatal Safety Gate evaluator and runner CLI (`src/cli.ts`)**
+- [x] **Step 5: Commit bench package**
 
 ---
 
@@ -162,10 +162,10 @@
 - Consumes: `@runbook/types`
 - Produces: Cloud Run service containers for control plane, broker PEP, and mock capability worker.
 
-- [ ] **Step 1: Scaffold `apps/control` with state machine runtime server, Dockerfile, and package configuration**
-- [ ] **Step 2: Scaffold `apps/broker` with Action Broker PEP server, KMS verification stubs, and Dockerfile**
-- [ ] **Step 3: Scaffold `apps/acme-worker` with mock capabilities and deterministic fault injection endpoints**
-- [ ] **Step 4: Commit Cloud Run service applications**
+- [x] **Step 1: Scaffold `apps/control` with state machine runtime server, Dockerfile, and package configuration**
+- [x] **Step 2: Scaffold `apps/broker` with Action Broker PEP server, KMS verification stubs, and Dockerfile**
+- [x] **Step 3: Scaffold `apps/acme-worker` with mock capabilities and deterministic fault injection endpoints**
+- [x] **Step 4: Commit Cloud Run service applications**
 
 ---
 
@@ -184,10 +184,10 @@
 - Consumes: `@runbook/types`
 - Produces: React + Vite web dashboard for incident review, approvals, and compiler studio.
 
-- [ ] **Step 1: Create `apps/console/package.json`, `tsconfig.json`, and `vite.config.ts`**
-- [ ] **Step 2: Create `index.html` and modern aesthetic CSS in `src/styles/index.css`**
-- [ ] **Step 3: Implement `src/App.tsx` and `src/main.tsx` providing navigation across Incident Monitor, Approvals, and Compiler Studio**
-- [ ] **Step 4: Commit console application**
+- [x] **Step 1: Create `apps/console/package.json`, `tsconfig.json`, and `vite.config.ts`**
+- [x] **Step 2: Create `index.html` and modern aesthetic CSS in `src/styles/index.css`**
+- [x] **Step 3: Implement `src/App.tsx` and `src/main.tsx` providing navigation across Incident Monitor, Approvals, and Compiler Studio**
+- [x] **Step 4: Commit console application**
 
 ---
 
@@ -209,10 +209,10 @@
 **Interfaces:**
 - Produces: Local containerized emulator environment and Terraform skeleton for GCP production.
 
-- [ ] **Step 1: Create `infra/docker/docker-compose.yml` with Firestore emulator, Pub/Sub emulator, and local service configuration**
-- [ ] **Step 2: Create Terraform root modules (`main.tf`, `variables.tf`, `outputs.tf`)**
-- [ ] **Step 3: Create Terraform topology modules for Cloud Run, Firestore, Pub/Sub, KMS, GCS, and IAM**
-- [ ] **Step 4: Commit infra configuration**
+- [x] **Step 1: Create `infra/docker/docker-compose.yml` with Firestore emulator, Pub/Sub emulator, and local service configuration**
+- [x] **Step 2: Create Terraform root modules (`main.tf`, `variables.tf`, `outputs.tf`)**
+- [x] **Step 3: Create Terraform topology modules for Cloud Run, Firestore, Pub/Sub, KMS, GCS, and IAM**
+- [x] **Step 4: Commit infra configuration**
 
 ---
 
@@ -227,17 +227,17 @@
 **Interfaces:**
 - Produces: Reference runbooks, capability manifests, and test corpus items for testing and demonstrations.
 
-- [ ] **Step 1: Create canonical operational runbook `fixtures/runbooks/acme-ingestion-recovery.md`**
-- [ ] **Step 2: Create disaster recovery runbook `fixtures/runbooks/database-failover.md`**
-- [ ] **Step 3: Create canonical Capability Manifest `fixtures/manifests/acme-operations.json`**
-- [ ] **Step 4: Create sample RunbookBench corpus item `fixtures/bench-corpus/cisa-sample.json`**
-- [ ] **Step 5: Commit fixtures**
+- [x] **Step 1: Create canonical operational runbook `fixtures/runbooks/acme-ingestion-recovery.md`**
+- [x] **Step 2: Create disaster recovery runbook `fixtures/runbooks/database-failover.md`**
+- [x] **Step 3: Create canonical Capability Manifest `fixtures/manifests/acme-operations.json`**
+- [x] **Step 4: Create sample RunbookBench corpus item `fixtures/bench-corpus/cisa-sample.json`**
+- [x] **Step 5: Commit fixtures**
 
 ---
 
 ### Task 10: Monorepo Verification & Dependency Installation
 
-- [ ] **Step 1: Run `pnpm install` to link workspaces and resolve dependencies**
-- [ ] **Step 2: Run `pnpm -r build` or typecheck across packages**
-- [ ] **Step 3: Verify the entire scaffold is clean and functional**
-- [ ] **Step 4: Final commit of lockfile and verified structure**
+- [x] **Step 1: Run `pnpm install` to link workspaces and resolve dependencies**
+- [x] **Step 2: Run `pnpm -r build` or typecheck across packages**
+- [x] **Step 3: Verify the entire scaffold is clean and functional**
+- [x] **Step 4: Final commit of lockfile and verified structure**
