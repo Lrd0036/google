@@ -51,6 +51,8 @@ services:
       - PORT=8081
       - GCP_PROJECT=runbook-local-dev
       - LOCAL_TRANSPORT=true
+      - DEPLOYMENT_MODE=local
+      - LOCAL_MOCK_MUTATION_GATE=true
       - ALLOWED_CAPABILITY_ORIGINS=http://acme-worker:8082
       - FIRESTORE_EMULATOR_HOST=firestore-emulator:8085
     depends_on:

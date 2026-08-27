@@ -18,10 +18,12 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm build && node --test dist/compile.test.js dist/parser/markdown.test.js dist/semantic/review.test.js",
+    "test": "pnpm build && node --test dist/compile.test.js dist/parser/markdown.test.js dist/semantic/review.test.js dist/semantic/genai-sdk.test.js dist/agents/adk.test.js dist/judgment/runtime.test.js dist/judgment/bind.test.js dist/judgment/policy.test.js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
+    "@google/adk": "^2.0.0",
+    "@google/genai": "^2.19.0",
     "@runbook/types": "workspace:*",
     "commander": "^13.1.0",
     "zod": "^3.24.2"

@@ -10,7 +10,7 @@ The corpus is structurally valid but non-publishable because all 12 cases remain
 
 ## Deployed containment
 
-- Console: revision `rb-console-00005-s2x`, image `sha256:507c12a7ee79baccb38a606c708a1a742f23ac3d7082674df51ed3bbf0cbc0ee`, direct IAP enabled, no `allUsers`, `CONSOLE_DATA_MODE=DEMO`.
+- Console: revision `rb-console-00005-s2x`, image `sha256:507c12a7ee79baccb38a606c708a1a742f23ac3d7082674df51ed3bbf0cbc0ee`, direct IAP enabled, no `allUsers`, `CONSOLE_DATA_MODE=DEMO`. The bootstrap user is now bound on the Cloud Run IAP resource (not merely project IAM); the authenticated browser still returns IAP access denial and remains an unresolved verification item.
 - Control: revision `rb-control-00004-jc8`, image `sha256:50d71c461b59d1e8826f76d51efbeffc596029d3492c7eb224ceca1f43ef62de`, `CLOUD_EXECUTION_ENABLED=false`.
 - Broker: revision `rb-broker-00004-pjd`, image `sha256:7c5b85f4bbbea32bebefe8574390510f9537713efb5ddff31fbd9478ceb024f3`, `BROKER_MUTATIONS_ENABLED=false`, `STATE_SCHEMA=runtime/v1`.
 - Authority: private revision `rb-authority-00001-wqt`, image `sha256:1454ceb272ae5c5476c82f1ac1505cf9df9c0ae0b34f6498c2374796d0ecbd05`, no Console invoker binding.
@@ -35,6 +35,6 @@ These resources establish boundaries; they do not prove backup restoration, aler
 3. Runtime-negative suite against the deployed identities and exact artifact generations.
 4. Console authenticated-render test after an operator signs into IAP; unauthenticated redirect is verified.
 5. Audit delivery drill, Firestore restore-to-new-database drill, and alert-delivery drill.
-6. Terraform import/adoption of the pre-existing and manually provisioned project resources, followed by review of the full 7.45.0 upgrade plan.
+6. Terraform import/adoption of the pre-existing and manually provisioned project resources, followed by review of the full 7.45.0 upgrade plan. Authority/Audit Writer services and Authority/Audit Writer/Release Gate service accounts are adopted; the remaining import set is pending after a provider read stalled.
 
 Only after those produce current evidence should the release-gate identity issue and activate an eligible attestation and the invocation edges be restored in the specified order.

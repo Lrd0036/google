@@ -30,6 +30,9 @@ const releaseGate = mutationsEnabled && firestore && releaseKeyId ? new ActiveRe
   releaseKeyId,
 }) : undefined;
 if (mutationsEnabled && !releaseGate) throw new Error('BROKER_MUTATIONS_ENABLED requires Firestore and RELEASE_KMS_KEY_VERSION');
+const localMockMutationGate = process.env.DEPLOYMENT_MODE === 'local' && process.env.LOCAL_TRANSPORT === 'true' && process.env.LOCAL_MOCK_MUTATION_GATE === 'true'
+  ? { authorize: async () => undefined }
+  : undefined;
 const allowedOrigins = (process.env.ALLOWED_CAPABILITY_ORIGINS ?? '').split(',').map((value) => value.trim()).filter(Boolean);
 const maxJsonBodyBytes = Number(process.env.MAX_JSON_BODY_BYTES || 1_048_576);
 
@@ -86,7 +89,7 @@ const server = createServer(async (req, res) => {
           allowedOrigins,
           metrics,
           circuitBreaker: circuitBreakers.get(breakerKey) ?? circuitBreakers.set(breakerKey, new CircuitBreaker()).get(breakerKey),
-          mutationGate: releaseGate,
+          mutationGate: releaseGate ?? localMockMutationGate,
         });
         send(res, 200, result);
     } catch (error: unknown) {

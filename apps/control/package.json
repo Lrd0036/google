@@ -5,7 +5,7 @@
   "description": "Cloud Run Control Plane State Machine Runtime for RBIR v0.1",
   "type": "module",
   "main": "./dist/index.js",
-    "exports": {
+  "exports": {
     ".": "./dist/index.js",
     "./runtime": {
       "types": "./dist/runtime.d.ts",
@@ -47,8 +47,9 @@
     "@google-cloud/firestore": "^7.11.0",
     "@google-cloud/kms": "^4.5.0",
     "@google-cloud/storage": "^7.16.0",
-    "google-auth-library": "^9.15.1",
-    "@runbook/types": "workspace:*"
+    "@runbook/compiler": "workspace:^",
+    "@runbook/types": "workspace:*",
+    "google-auth-library": "^9.15.1"
   },
   "devDependencies": {
     "@types/node": "^22.13.5",

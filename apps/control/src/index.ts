@@ -108,7 +108,7 @@ const server = createServer(async (req, res) => {
     try {
       const body = await readJson(req);
       const executionId = body.execution_id === undefined ? undefined : requireFirestoreDocumentId(body.execution_id, 'execution id');
-      const result = await executeOverBroker(body.document, body.manifest, (body.context ?? {}) as Record<string, unknown>, { brokerUrl: process.env.BROKER_URL || 'http://localhost:8081', executionId, triggerSha256: typeof body.trigger_sha256 === 'string' ? body.trigger_sha256 : undefined });
+      const result = await executeOverBroker(body.document, body.manifest, (body.context ?? {}) as Record<string, unknown>, { brokerUrl: process.env.BROKER_URL || 'http://localhost:8081', executionId, triggerSha256: typeof body.trigger_sha256 === 'string' ? body.trigger_sha256 : undefined, startNodeId: typeof body.start_node === 'string' ? body.start_node : undefined });
       respond(res, 200, result);
     } catch (error) { respond(res, 400, { error: error instanceof Error ? error.message : 'Local orchestration failed' }); }
     return;

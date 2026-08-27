@@ -37,13 +37,20 @@ program
   .command('review')
   .description('Create a local semantic review artifact without emitting executable RBIR')
   .argument('<runbook>', 'Path to markdown runbook')
-  .requiredOption('-r, --responses <file>', 'Recorded model response JSON')
+  .option('-r, --responses <file>', 'Recorded model response JSON')
+  .option('--live', 'Use Gemini 3.5 through the tool-less ADK interpreter agent')
   .option('-o, --output <file>', 'Write review JSON to a file')
-  .action(async (runbook: string, options: { responses: string; output?: string }) => {
+  .action(async (runbook: string, options: { responses?: string; live?: boolean; output?: string }) => {
     try {
       const source = readFileSync(runbook, 'utf8');
-      const response = JSON.parse(readFileSync(options.responses, 'utf8'));
-      const artifact = await reviewRunbook(source, runbook, new StaticGeminiTransport([response]));
+      const { GoogleGenAiSdkTransport } = await import('./semantic/genai-sdk.js');
+      const transport = options.live
+        ? new GoogleGenAiSdkTransport()
+        : options.responses
+          ? new StaticGeminiTransport([JSON.parse(readFileSync(options.responses, 'utf8'))])
+          : undefined;
+      if (!transport) throw new Error('review requires --live or --responses');
+      const artifact = await reviewRunbook(source, runbook, transport);
       const output = JSON.stringify(artifact, null, 2);
       if (options.output) {
         const { writeFileSync } = await import('node:fs');

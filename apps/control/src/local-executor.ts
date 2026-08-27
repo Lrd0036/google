@@ -1,7 +1,9 @@
 import type { RBIRDocument, RBIRNode } from '@runbook/types';
+import { applyJudgmentPolicy, modelJudgmentFromContext } from '@runbook/compiler';
 
 export interface LocalActionResult { status: string; response?: unknown; operation_id?: string; }
 export type LocalActionDispatcher = (node: RBIRNode, params: Record<string, unknown>, attempt: number) => Promise<LocalActionResult>;
+export type LocalJudgmentFn = (node: RBIRNode, context: Record<string, unknown>) => Promise<string>;
 export interface LocalExecutionResult { status: 'COMPLETED' | 'HALTED' | 'SUSPENDED_APPROVAL' | 'FAILED'; current_node: string; trace: string[]; context: Record<string, unknown>; error?: string; }
 
 function pointer(context: Record<string, unknown>, ref: string): unknown {
@@ -32,10 +34,11 @@ function transition(document: RBIRDocument, node: RBIRNode, outcome: string): st
 }
 
 /** Offline control-plane runner for compiled RBIR; it never chooses a capability. */
-export async function executeLocally(document: RBIRDocument, initialContext: Record<string, unknown>, dispatch: LocalActionDispatcher, maxSteps = 100): Promise<LocalExecutionResult> {
+export async function executeLocally(document: RBIRDocument, initialContext: Record<string, unknown>, dispatch: LocalActionDispatcher, maxSteps = 100, startNodeId = document.entry_node, judge?: LocalJudgmentFn): Promise<LocalExecutionResult> {
   const context = structuredClone(initialContext) as Record<string, unknown>;
+  context.executed_capabilities ??= [];
   const trace: string[] = [];
-  let nodeId = document.entry_node;
+  let nodeId = startNodeId;
   const attempts = new Map<string, number>();
   try {
     for (let step = 0; step < maxSteps; step += 1) {
@@ -50,8 +53,12 @@ export async function executeLocally(document: RBIRDocument, initialContext: Rec
         if (typeof requested !== 'string' || !node.outcomes.includes(requested)) throw new Error(`UNMAPPED_DETERMINISTIC_CONTEXT:${node.id}`);
         outcome = requested;
       } else if (node.kind === 'AGENT_JUDGMENT') {
-        const requested = context.judgment;
-        outcome = typeof requested === 'string' && node.outcomes.includes(requested) ? requested : 'UNKNOWN';
+        const raw = judge
+          ? await judge(node, context)
+          : modelJudgmentFromContext(context);
+        if (typeof raw !== 'string') throw new Error(`UNMAPPED_JUDGMENT:${node.id}`);
+        outcome = applyJudgmentPolicy(raw, context, node.outcomes);
+        if (!node.outcomes.includes(outcome)) throw new Error(`UNMAPPED_JUDGMENT:${node.id}`);
       } else if (node.kind === 'ACTION') {
         const attempt = (attempts.get(node.id) ?? 0) + 1;
         attempts.set(node.id, attempt);
@@ -60,6 +67,9 @@ export async function executeLocally(document: RBIRDocument, initialContext: Rec
         outcome = result.status === 'COMPLETED' ? (node.outcomes.includes('ACTION_SUCCEEDED') ? 'ACTION_SUCCEEDED' : node.outcomes[0]!) : (node.outcomes.includes('ACTION_FAILED') ? 'ACTION_FAILED' : node.outcomes.at(-1)!);
         context.results ??= {};
         (context.results as Record<string, unknown>)[node.id] = result.response ?? result;
+        const executed = Array.isArray(context.executed_capabilities) ? context.executed_capabilities as string[] : [];
+        executed.push(node.action?.capability ?? node.id);
+        context.executed_capabilities = executed;
       } else if (node.kind === 'VERIFY') {
         const expected = Object.fromEntries(Object.entries(node.verify?.expected_state ?? {}).map(([key, value]) => [key, resolveBinding(value, context)]));
         const params = Object.fromEntries(Object.entries(node.verify?.expected_state ?? {}).filter(([, value]) => value && typeof value === 'object' && !Array.isArray(value) && 'ref' in (value as Record<string, unknown>)).map(([key, value]) => [key, resolveBinding(value, context)]));

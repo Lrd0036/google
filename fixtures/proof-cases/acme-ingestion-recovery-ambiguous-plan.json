@@ -1,0 +1,15 @@
+{
+  "runbook_id": "acme-ingestion-recovery-ambiguous",
+  "version": 1,
+  "tenant_id": "acme-demo",
+  "entry_node": "bad_condition",
+  "context_schema": { "type": "object", "additionalProperties": false, "required": ["job_id"], "properties": { "job_id": { "type": "string" } } },
+  "nodes": [
+    { "id": "bad_condition", "kind": "DETERMINISTIC", "description": "If things seem really bad", "outcomes": ["RETRY"] },
+    { "id": "retry", "kind": "ACTION", "description": "Retry as needed", "outcomes": ["ACTION_SUCCEEDED"], "action": { "capability": "retry_job@1", "parameters": { "job_id": { "ref": "/context/job_id" } } } }
+  ],
+  "edges": [
+    { "id": "bad-to-retry", "from": "bad_condition", "on": "RETRY", "to": "retry" },
+    { "id": "retry-to-retry", "from": "retry", "on": "ACTION_SUCCEEDED", "to": "retry" }
+  ]
+}

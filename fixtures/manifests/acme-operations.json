@@ -1,7 +1,7 @@
 {
   "manifest_version": "rb-capabilities/v0.1",
   "id": "acme-operations",
-  "version": 3,
+  "version": 4,
   "capabilities": [
     {
       "id": "retry_job",
@@ -90,6 +90,52 @@
       },
       "approval_floor": "OPERATIONS_LEAD",
       "credential_profile": "acme-drain-identity-v1"
+    },
+    {
+      "id": "rotate_auth",
+      "version": 1,
+      "description": "Rotate the expired partner credential for one ingestion job.",
+      "semantic_actions": [
+        "rotate auth",
+        "rotate partner token"
+      ],
+      "mode": "WRITE",
+      "risk": "R1_REVERSIBLE_LOW",
+      "transport": {
+        "type": "HTTP",
+        "service": "acme-worker",
+        "method": "POST",
+        "path": "/capabilities/rotate-auth",
+        "audience": "http://acme-worker:8082",
+        "allowed_host": "acme-worker:8082"
+      },
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["job_id"],
+        "properties": {
+          "job_id": { "type": "string" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operation_id", "status"],
+        "properties": {
+          "operation_id": { "type": "string" },
+          "status": {
+            "enum": ["ACCEPTED", "COMPLETED"]
+          }
+        }
+      },
+      "timeout_ms": 5000,
+      "idempotency": {
+        "strategy": "NATIVE_KEY",
+        "header": "Idempotency-Key",
+        "same_key_replay_safe": true
+      },
+      "approval_floor": "OPERATIONS_LEAD",
+      "credential_profile": "acme-rotate-identity-v1"
     },
     {
       "id": "get_job_status",

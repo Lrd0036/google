@@ -7,7 +7,7 @@ import { analyzeReachability } from './reachability.js';
 export interface LinterOptions { manifest?: CapabilityManifest; statementSources?: Map<string, SourceSpan>; defaultSource?: SourceSpan; }
 export interface LintResult { artifact: DiagnosticArtifact; hasErrors: boolean; }
 const fallbackSource: SourceSpan = { uri: 'runbook.md', start: { line: 1, column: 1, byte: 0 }, end: { line: 1, column: 1, byte: 0 } };
-const ambiguous = /\b(high|low|reasonable|excessive|alarming|significant|suspicious|appropriate|as necessary|when possible|soon|quickly)\b/i;
+const ambiguous = /\b(high|low|bad|reasonable|excessive|alarming|significant|suspicious|appropriate|as necessary|as needed|when possible|soon|quickly)\b/i;
 
 function statementId(node: RBIRDocument['nodes'][number]): string { return node.statement_ids[0] ?? `stmt_node_${node.id}`; }
 function capabilityId(value: string): string { return value.includes('@') ? value : `${value}@1`; }

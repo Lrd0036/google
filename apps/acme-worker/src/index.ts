@@ -31,6 +31,9 @@ const maxStateEntries = Number(process.env.MAX_STATE_ENTRIES || 1_000);
 if (!Number.isSafeInteger(maxStateEntries) || maxStateEntries < 1 || maxStateEntries > 10_000) throw new Error('MAX_STATE_ENTRIES must be between 1 and 10000');
 let operationSequence = 0;
 let globalAuthRotated = false;
+let retryRequestsReceived = 0;
+let uniqueBusinessMutations = 0;
+let lastIdempotencyKey: string | undefined;
 const jsonHeaders = { 'Content-Type': 'application/json' };
 
 function boundedSet<K, V>(map: Map<K, V>, key: K, value: V): void {
@@ -115,6 +118,8 @@ function scheduleCrashAfterAction(): void {
 }
 
 function handleRetry(job: JobState, res: ServerResponse, idempotencyKey?: string): void {
+  retryRequestsReceived += 1;
+  if (idempotencyKey) lastIdempotencyKey = idempotencyKey;
   if (idempotencyKey) {
     const existing = operationResults.get(idempotencyKey);
     if (existing) { sendJson(res, existing.status, existing.body); return; }
@@ -147,6 +152,7 @@ function handleRetry(job: JobState, res: ServerResponse, idempotencyKey?: string
   }
   job.status = 'COMPLETED';
   job.last_error = undefined;
+  uniqueBusinessMutations += 1;
   const body = { operation_id: operationId('retry'), status: 'COMPLETED' };
   boundedSet(operations, body.operation_id, { ...body, job_id: job.job_id, updated_at: new Date().toISOString() });
   if (idempotencyKey) boundedSet(operationResults, idempotencyKey, { status: 200, body });
@@ -158,6 +164,10 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
   const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   if (req.method === 'GET' && url.pathname === '/health') {
     sendJson(res, 200, { status: 'HEALTHY', service: 'acme-worker' });
+    return;
+  }
+  if (req.method === 'GET' && url.pathname === '/proof/mutations') {
+    sendJson(res, 200, { retry_requests_received: retryRequestsReceived, unique_business_mutations: uniqueBusinessMutations, idempotency_key: lastIdempotencyKey ?? null });
     return;
   }
   const jobMatch = /^\/jobs\/([^/]+)$/.exec(url.pathname);
@@ -214,7 +224,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
   }
   if (url.pathname === '/capabilities/rotate-auth') {
     globalAuthRotated = true;
-    const job = typeof payload.job_id === 'string' ? getOrCreateJob(payload, req) : undefined;
+    if (typeof payload.job_id === 'string') getOrCreateJob(payload, req);
     for (const knownJob of jobs.values()) {
       knownJob.auth_rotated = true;
       knownJob.last_error = undefined;
@@ -223,7 +233,6 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     const operation = {
       operation_id: operationId('rotate_auth'),
       status: 'COMPLETED',
-      ...(job ? { job_id: job.job_id } : {}),
     };
     boundedSet(operations, operation.operation_id, { ...operation, updated_at: new Date().toISOString() });
     sendJson(res, 200, operation);

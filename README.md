@@ -2,11 +2,27 @@
 
 Reference implementation of the **Runbook Compiler (RBIR v0.1)** and **RunbookBench (v0.1)** research suite, based on [`spec.md`](./spec.md).
 
+**Hackathon track:** Fortified Enterprise Fleet — [All Things Agentic](https://allthingsagentichackathon.devpost.com/). Gemini 3.5 interprets. Google ADK hosts tool-less interpreter agents. Cloud Run, Firestore, Pub/Sub, and KMS execute only capabilities declared in the manifest.
+
 ## Architectural Invariant
 
 > **The model may interpret reality. It may not invent authority.**  
 > $\text{Knowledge} \neq \text{Judgment} \neq \text{Authority} \neq \text{Action}$  
 > $\text{AGENT\_JUDGMENT} \cap \text{ACTION} = \emptyset$
+
+```mermaid
+flowchart LR
+  MD[Markdown runbook] --> Review[ADK / Gemini review]
+  Review --> Plan[Human-reviewed compile plan]
+  Plan --> Comp[Compiler + linter]
+  Comp -->|RBK-104 / 201 / 301| Stop[Refuse to compile]
+  Comp --> RBIR[RBIR graph]
+  RBIR --> Control[Control Cloud Run]
+  Control --> Judge[Tool-less AGENT_JUDGMENT]
+  Judge --> Broker[Broker PEP]
+  Broker --> Worker[Declared capability only]
+  Worker --> Verify[VERIFY]
+```
 
 ## Repository Layout
 
@@ -48,8 +64,10 @@ extraction remains advisory and cannot silently create capability bindings.
 ```bash
 pnpm local:compile       # writes .local/acme-ingestion-recovery.rbir.json
 node packages/compiler/dist/cli.js review RUNBOOK.md --responses recorded-model-response.json
+node packages/compiler/dist/cli.js review RUNBOOK.md --live
 pnpm local:smoke          # compiled RBIR -> control runner -> broker -> worker -> VERIFY
 pnpm local:http-smoke     # Control HTTP endpoint -> Broker HTTP -> Worker -> VERIFY
+pnpm local:gemini-smoke   # same path with live Gemini 3.5 classifying telemetry (needs GEMINI_API_KEY)
 pnpm local:fault-smoke    # transient, malformed, injection, auth, replay, and 404 checks
 pnpm local:bench          # validate and score the pilot corpus
 pnpm local:pubsub-smoke   # publish/pull a resume envelope through the emulator

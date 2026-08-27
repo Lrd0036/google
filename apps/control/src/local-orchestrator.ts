@@ -1,15 +1,23 @@
-import { constants, createHash, generateKeyPairSync, sign } from 'node:crypto';
+import { constants, createHash, generateKeyPairSync, randomBytes, sign } from 'node:crypto';
 import { CapabilityManifestSchema, RBIRDocumentSchema } from '@runbook/types';
 import type { RBIRNode } from '@runbook/types';
-import { executeLocally, type LocalExecutionResult } from './local-executor.js';
+import { executeLocally, type LocalExecutionResult, type LocalJudgmentFn } from './local-executor.js';
 import { GoogleAuth } from 'google-auth-library';
 import { KeyManagementServiceClient } from '@google-cloud/kms';
+import { createAgentJudgmentFn, createLiveModelTransport } from '@runbook/compiler';
 
 export interface LocalOrchestrationOptions {
   brokerUrl: string;
   fetchImpl?: typeof fetch;
   executionId?: string;
   triggerSha256?: string;
+  startNodeId?: string;
+  judge?: LocalJudgmentFn;
+}
+
+function liveJudge(): LocalJudgmentFn | undefined {
+  if (process.env.LIVE_GEMINI_JUDGMENT !== 'true') return undefined;
+  return createAgentJudgmentFn(createLiveModelTransport());
 }
 
 function canonicalJson(value: unknown): string {
@@ -40,7 +48,7 @@ export async function executeOverBroker(documentInput: unknown, manifestInput: u
     const now = Math.floor(Date.now() / 1000);
     const unsigned = {
       typ: 'RB-ACTION-GRANT' as const, version: '0.1' as const, iss: 'rb-control' as const, aud: 'rb-broker' as const,
-      jti: `${executionId}-${node.id}-${attempt}-${now}`, iat: now, exp: now + 60, execution_id: executionId, node_id: node.id,
+      jti: `${executionId}-${node.id}-${attempt}-${now}-${randomBytes(8).toString('hex')}`, iat: now, exp: now + 60, execution_id: executionId, node_id: node.id,
       node_attempt: attempt, capability, params_sha256: sha256(params), runbook_ir_sha256: document.source.source_sha256,
       manifest_sha256: sha256(manifest), trigger_sha256: triggerSha256, lease_generation: 1, control_epoch: 1, authority_assertion_ids: [],
     };
@@ -60,5 +68,5 @@ export async function executeOverBroker(documentInput: unknown, manifestInput: u
     if (!response.ok) throw new Error(typeof body.error === 'string' ? body.error : `BROKER_HTTP_${response.status}`);
     return { status: String(body.status), response: body.response, operation_id: typeof body.operation_id === 'string' ? body.operation_id : undefined };
   };
-  return executeLocally(document, context, dispatch);
+  return executeLocally(document, context, dispatch, 100, options.startNodeId ?? document.entry_node, options.judge ?? liveJudge());
 }

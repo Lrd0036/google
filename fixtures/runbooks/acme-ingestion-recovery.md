@@ -2,7 +2,7 @@
 
 **Runbook ID:** `acme-ingestion-recovery`  
 **Tenant:** `acme-demo`  
-**Version:** 7  
+**Version:** 9  
 
 ## Trigger Condition
 When an ingestion pipeline failure alert `INGESTION_JOB_STALLED` or `UPSTREAM_503` is received.
@@ -14,11 +14,16 @@ When an ingestion pipeline failure alert `INGESTION_JOB_STALLED` or `UPSTREAM_50
    - `TRANSIENT_UPSTREAM_FAILURE`
    - `SCHEMA_MISMATCH`
    - `CORRUPTED_BATCH`
+   - `AUTHENTICATION_FAILURE`
 
 2. **Remediation Actions**
    - If classified as `TRANSIENT_UPSTREAM_FAILURE`:
      The operator must execute the `retry_job` capability with the provided `job_id`.
      The retry count must not exceed 3 attempts.
+   - If classified as `AUTHENTICATION_FAILURE`:
+     The operator must halt and obtain human approval from the incident commander.
+     After approval, execute `rotate_auth` for the stalled job, then `retry_job`, then `verify_job_completion`.
+     Do not rotate credentials or retry before that approval.
    - If classified as `SCHEMA_MISMATCH`:
      The operator must drain the ingestion queue using `drain_queue` and escalate to the data engineering lead.
    - If classified as `CORRUPTED_BATCH`:
