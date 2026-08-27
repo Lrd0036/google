@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runbook.dev/schemas/rb-execution-state/v0.1.json",
+  "title": "Firestore Execution State Schema (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "execution_id",
+    "tenant_id",
+    "runbook_id",
+    "runbook_version",
+    "ir_sha256",
+    "state_version",
+    "status",
+    "lease",
+    "current_node",
+    "context",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "execution_id": { "type": "string" },
+    "tenant_id": { "type": "string" },
+    "runbook_id": { "type": "string" },
+    "runbook_version": { "type": "integer" },
+    "ir_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "state_version": { "type": "integer", "minimum": 1 },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "RUNNING",
+        "SUSPENDED_APPROVAL",
+        "WAITING_VERIFY",
+        "COMPLETED",
+        "HALTED",
+        "FAILED",
+        "COMPENSATING"
+      ]
+    },
+    "lease": {
+      "type": "object",
+      "required": ["owner", "generation", "acquired_at", "expires_at"],
+      "properties": {
+        "owner": { "type": "string" },
+        "generation": { "type": "integer", "minimum": 1 },
+        "acquired_at": { "type": "string", "format": "date-time" },
+        "expires_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "current_node": { "type": "string" },
+    "context": { "type": "object" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": "string", "format": "date-time" },
+    "error": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" }
+      }
+    }
+  }
+}

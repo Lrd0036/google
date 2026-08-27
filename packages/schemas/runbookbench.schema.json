@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runbook.dev/schemas/runbookbench/v0.1.json",
+  "title": "RunbookBench Evaluation Item (runbookbench/v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "corpus_class",
+    "provenance",
+    "source_text",
+    "annotations"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "runbookbench/v0.1"
+    },
+    "id": { "type": "string" },
+    "corpus_class": {
+      "type": "string",
+      "enum": [
+        "AUTHENTIC_NORMATIVE",
+        "AUTHENTIC_OPERATIONAL",
+        "STRUCTURED_CONTRACT",
+        "CONSTRUCTED_GOLDEN",
+        "ADVERSARIAL_MUTATION"
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "publisher",
+        "title",
+        "source_url",
+        "retrieved_at",
+        "source_sha256",
+        "license_or_use_note",
+        "content_mode"
+      ],
+      "properties": {
+        "publisher": { "type": "string" },
+        "title": { "type": "string" },
+        "source_url": { "type": "string" },
+        "retrieved_at": { "type": "string", "format": "date-time" },
+        "source_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "license_or_use_note": { "type": "string" },
+        "content_mode": { "type": "string", "enum": ["FULL", "EXCERPT", "SYNTHETIC"] },
+        "source_locator": { "type": "string" }
+      }
+    },
+    "source_text": { "type": "string" },
+    "annotations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "statement_id",
+          "span",
+          "epistemic",
+          "deontic",
+          "execution_semantics",
+          "consequential"
+        ],
+        "properties": {
+          "statement_id": { "type": "string" },
+          "span": {
+            "type": "object",
+            "required": ["start_byte", "end_byte"],
+            "properties": {
+              "start_byte": { "type": "integer", "minimum": 0 },
+              "end_byte": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "epistemic": {
+            "type": "string",
+            "enum": [
+              "MACHINE_OBSERVATION",
+              "HUMAN_ASSERTION",
+              "DERIVED_FACT",
+              "POLICY_DECLARATION",
+              "HYPOTHESIS"
+            ]
+          },
+          "deontic": {
+            "type": "string",
+            "enum": [
+              "REQUIRED",
+              "PERMITTED",
+              "RECOMMENDED",
+              "PROHIBITED",
+              "OPTIONAL"
+            ]
+          },
+          "execution_semantics": {
+            "type": "string",
+            "enum": [
+              "ACTION",
+              "VERIFY",
+              "HUMAN_APPROVAL",
+              "AGENT_JUDGMENT",
+              "DETERMINISTIC",
+              "TERMINAL"
+            ]
+          },
+          "authority": {
+            "type": "object",
+            "properties": {
+              "class": { "type": "string" },
+              "role": { "type": "string" },
+              "basis": { "type": "string", "enum": ["STATUTORY", "DELEGATED", "ADMINISTRATIVE"] }
+            }
+          },
+          "consequential": { "type": "boolean" },
+          "expected_capability": { "type": "string" }
+        }
+      }
+    }
+  }
+}

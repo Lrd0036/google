@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runbook.dev/schemas/rb-action-grant/v0.1.json",
+  "title": "Action Grant Assertion (RB-ACTION-GRANT v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "typ",
+    "version",
+    "iss",
+    "aud",
+    "jti",
+    "iat",
+    "exp",
+    "execution_id",
+    "node_id",
+    "node_attempt",
+    "capability",
+    "params_sha256",
+    "runbook_ir_sha256",
+    "manifest_sha256",
+    "trigger_sha256",
+    "lease_generation",
+    "control_epoch"
+  ],
+  "properties": {
+    "typ": {
+      "type": "string",
+      "const": "RB-ACTION-GRANT"
+    },
+    "version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "iss": { "type": "string", "const": "rb-control" },
+    "aud": { "type": "string", "const": "rb-broker" },
+    "jti": { "type": "string" },
+    "iat": { "type": "integer" },
+    "exp": { "type": "integer" },
+    "execution_id": { "type": "string" },
+    "node_id": { "type": "string" },
+    "node_attempt": { "type": "integer", "minimum": 1 },
+    "capability": { "type": "string" },
+    "params_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "runbook_ir_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "manifest_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "trigger_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "lease_generation": { "type": "integer" },
+    "control_epoch": { "type": "integer" },
+    "authority_assertion_ids": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

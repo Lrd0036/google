@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runbook.dev/schemas/rb-diagnostic/v0.1.json",
+  "title": "Runbook Diagnostic AST (rb-diagnostic/v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "diagnostic_version",
+    "diagnostics"
+  ],
+  "properties": {
+    "diagnostic_version": {
+      "type": "string",
+      "const": "rb-diagnostic/v0.1"
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "severity",
+          "category",
+          "message",
+          "statement_id",
+          "source",
+          "required_resolution"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^RBK-[1-9][0-9]{2}$"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["ERROR", "WARNING", "INFO"]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "SYNTAX",
+              "AMBIGUOUS_PREDICATE",
+              "UNBOUNDED_RETRY",
+              "CONTRADICTORY_POLICY",
+              "UNVERIFIED_MUTATION",
+              "DEAD_END_OR_UNREACHABLE",
+              "UNKNOWN_CAPABILITY",
+              "TYPE_MISMATCH",
+              "AUTHORITY_ESCALATION"
+            ]
+          },
+          "message": { "type": "string" },
+          "statement_id": { "type": "string" },
+          "related_node": { "type": "string" },
+          "source": {
+            "type": "object",
+            "required": ["uri", "start", "end"],
+            "properties": {
+              "uri": { "type": "string" },
+              "start": {
+                "type": "object",
+                "required": ["line", "column", "byte"],
+                "properties": {
+                  "line": { "type": "integer", "minimum": 1 },
+                  "column": { "type": "integer", "minimum": 1 },
+                  "byte": { "type": "integer", "minimum": 0 }
+                }
+              },
+              "end": {
+                "type": "object",
+                "required": ["line", "column", "byte"],
+                "properties": {
+                  "line": { "type": "integer", "minimum": 1 },
+                  "column": { "type": "integer", "minimum": 1 },
+                  "byte": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          },
+          "required_resolution": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "suggested_fix": {
+            "type": "object",
+            "properties": {
+              "kind": { "type": "string", "enum": ["SOURCE_PATCH", "CAPABILITY_UPGRADE", "HUMAN_ESCALATION"] },
+              "advisory_only": { "type": "boolean", "const": true },
+              "replacement": { "type": "string" },
+              "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

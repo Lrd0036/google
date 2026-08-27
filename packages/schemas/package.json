@@ -1,0 +1,19 @@
+{
+  "name": "@runbook/schemas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Formal JSON Schemas (Draft 2020-12) for the Runbook Compiler reference architecture",
+  "type": "module",
+  "exports": {
+    "./rbir": "./rbir.schema.json",
+    "./capability-manifest": "./capability-manifest.schema.json",
+    "./diagnostic": "./diagnostic.schema.json",
+    "./runbookbench": "./runbookbench.schema.json",
+    "./action-grant": "./action-grant.schema.json",
+    "./approval-assertion": "./approval-assertion.schema.json",
+    "./execution-state": "./execution-state.schema.json"
+  },
+  "files": [
+    "*.schema.json"
+  ]
+}

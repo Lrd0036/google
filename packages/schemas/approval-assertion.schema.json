@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runbook.dev/schemas/rb-approval-assertion/v0.1.json",
+  "title": "Approval Assertion (RB-APPROVAL-ASSERTION v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "typ",
+    "version",
+    "iss",
+    "sub",
+    "aud",
+    "iat",
+    "exp",
+    "jti",
+    "tenant_id",
+    "authority_id",
+    "execution_id",
+    "runbook_ir_sha256",
+    "node_id",
+    "trigger_sha256",
+    "target_scope_sha256",
+    "decision"
+  ],
+  "properties": {
+    "typ": {
+      "type": "string",
+      "const": "RB-APPROVAL-ASSERTION"
+    },
+    "version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "iss": { "type": "string" },
+    "sub": { "type": "string" },
+    "aud": { "type": "string" },
+    "iat": { "type": "integer" },
+    "exp": { "type": "integer" },
+    "jti": { "type": "string" },
+    "tenant_id": { "type": "string" },
+    "authority_id": { "type": "string" },
+    "execution_id": { "type": "string" },
+    "runbook_ir_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "node_id": { "type": "string" },
+    "trigger_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "target_scope_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "decision": {
+      "type": "string",
+      "enum": ["APPROVE", "REJECT"]
+    }
+  }
+}

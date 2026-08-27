@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runbook.dev/schemas/rb-capabilities/v0.1.json",
+  "title": "Capability Manifest (rb-capabilities/v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "id",
+    "version",
+    "capabilities"
+  ],
+  "properties": {
+    "manifest_version": {
+      "type": "string",
+      "const": "rb-capabilities/v0.1"
+    },
+    "id": { "type": "string" },
+    "version": { "type": "integer", "minimum": 1 },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "version",
+          "description",
+          "semantic_actions",
+          "mode",
+          "risk",
+          "transport",
+          "input_schema",
+          "output_schema",
+          "timeout_ms",
+          "idempotency",
+          "approval_floor",
+          "credential_profile"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "version": { "type": "integer", "minimum": 1 },
+          "description": { "type": "string" },
+          "semantic_actions": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["READ", "WRITE"]
+          },
+          "risk": {
+            "type": "string",
+            "enum": [
+              "R0_READ_ONLY",
+              "R1_REVERSIBLE_LOW",
+              "R2_DISRUPTIVE_MEDIUM",
+              "R3_DESTRUCTIVE_HIGH"
+            ]
+          },
+          "transport": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": { "type": "string", "enum": ["HTTP", "GRPC", "PUBSUB", "CLOUD_FUNCTION"] },
+              "service": { "type": "string" },
+              "method": { "type": "string" },
+              "path": { "type": "string" },
+              "audience": { "type": "string" },
+              "allowed_host": { "type": "string" }
+            }
+          },
+          "input_schema": { "type": "object" },
+          "output_schema": { "type": "object" },
+          "timeout_ms": { "type": "integer", "minimum": 100 },
+          "idempotency": {
+            "type": "object",
+            "required": ["strategy"],
+            "properties": {
+              "strategy": {
+                "type": "string",
+                "enum": ["NATIVE_KEY", "CLIENT_TOKEN", "NATURALLY_IDEMPOTENT", "NON_IDEMPOTENT"]
+              },
+              "header": { "type": "string" },
+              "same_key_replay_safe": { "type": "boolean" }
+            }
+          },
+          "approval_floor": {
+            "type": "string",
+            "enum": ["PREAPPROVED_RUNBOOK", "OPERATIONS_LEAD", "INCIDENT_COMMANDER", "MULTI_PARTY_QUORUM"]
+          },
+          "credential_profile": { "type": "string" }
+        }
+      }
+    }
+  }
+}

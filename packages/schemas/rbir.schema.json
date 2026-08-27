@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runbook.dev/schemas/rbir/v0.1.json",
+  "title": "Runbook Intermediate Representation (RBIR v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ir_version",
+    "runbook",
+    "source",
+    "capability_manifest",
+    "entry_node",
+    "context_schema",
+    "authority_model",
+    "obligations",
+    "policy_constraints",
+    "nodes",
+    "edges"
+  ],
+  "properties": {
+    "ir_version": {
+      "type": "string",
+      "const": "rbir/v0.1"
+    },
+    "runbook": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "compiled_at", "compiler_version", "tenant_id"],
+      "properties": {
+        "id": { "type": "string" },
+        "version": { "type": "integer", "minimum": 1 },
+        "compiled_at": { "type": "string", "format": "date-time" },
+        "compiler_version": { "type": "string" },
+        "tenant_id": { "type": "string" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uri", "source_sha256"],
+      "properties": {
+        "uri": { "type": "string" },
+        "source_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+      }
+    },
+    "capability_manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "capability_manifest_sha256"],
+      "properties": {
+        "id": { "type": "string" },
+        "version": { "type": "integer", "minimum": 1 },
+        "capability_manifest_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+      }
+    },
+    "entry_node": {
+      "type": "string"
+    },
+    "context_schema": {
+      "type": "object"
+    },
+    "authority_model": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["authority_id", "basis", "issuer", "grantee", "permissions"],
+        "properties": {
+          "authority_id": { "type": "string" },
+          "basis": { "type": "string", "enum": ["STATUTORY", "DELEGATED", "ADMINISTRATIVE"] },
+          "issuer": { "type": "object" },
+          "grantee": { "type": "object" },
+          "permissions": { "type": "array", "items": { "type": "string" } },
+          "constraints": { "type": "object" },
+          "delegation_chain": { "type": "array", "items": { "type": "string" } },
+          "non_delegable": { "type": "boolean" },
+          "source": { "type": "object" }
+        }
+      }
+    },
+    "obligations": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "policy_constraints": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "description", "outcomes"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "DETERMINISTIC",
+              "AGENT_JUDGMENT",
+              "ACTION",
+              "HUMAN_APPROVAL",
+              "VERIFY",
+              "TERMINAL"
+            ]
+          },
+          "description": { "type": "string" },
+          "statement_ids": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "timeout_ms": { "type": "integer", "minimum": 0 },
+          "outcomes": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "action": {
+            "type": "object",
+            "properties": {
+              "capability": { "type": "string" },
+              "parameters": { "type": "object" },
+              "idempotency_key": { "type": "string" },
+              "compensation_node": { "type": "string" }
+            }
+          },
+          "judgment": {
+            "type": "object",
+            "properties": {
+              "model_profile": { "type": "string" },
+              "prompt_template": { "type": "string" },
+              "allowed_enum": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "approval": {
+            "type": "object",
+            "properties": {
+              "role": { "type": "string" },
+              "quorum": { "type": "integer", "minimum": 1 },
+              "timeout_ms": { "type": "integer" }
+            }
+          },
+          "verify": {
+            "type": "object",
+            "properties": {
+              "target_action_node": { "type": "string" },
+              "capability": { "type": "string" },
+              "expected_state": { "type": "object" }
+            }
+          },
+          "terminal": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": ["RESOLVED", "HALTED", "ESCALATED", "MANUAL_INTERVENTION_REQUIRED", "COMPENSATED"]
+              },
+              "reason": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "from", "on", "to"],
+        "properties": {
+          "id": { "type": "string" },
+          "from": { "type": "string" },
+          "on": { "type": "string" },
+          "to": { "type": "string" }
+        }
+      }
+    }
+  }
+}
