@@ -21,7 +21,8 @@
     "manifest_sha256",
     "trigger_sha256",
     "lease_generation",
-    "control_epoch"
+    "control_epoch",
+    "signature"
   ],
   "properties": {
     "typ": {
@@ -47,6 +48,16 @@
     "trigger_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
     "lease_generation": { "type": "integer" },
     "control_epoch": { "type": "integer" },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "key_id", "value"],
+      "properties": {
+        "algorithm": { "type": "string", "enum": ["RSA-PSS-SHA256", "ECDSA-SHA256"] },
+        "key_id": { "type": "string", "minLength": 1 },
+        "value": { "type": "string", "minLength": 1 }
+      }
+    },
     "authority_assertion_ids": {
       "type": "array",
       "items": { "type": "string" }

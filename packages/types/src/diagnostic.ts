@@ -13,6 +13,8 @@ export const DiagnosticCategorySchema = z.enum([
   'UNKNOWN_CAPABILITY',
   'TYPE_MISMATCH',
   'AUTHORITY_ESCALATION',
+  'FORBIDDEN_MUTATION',
+  'UNSAFE_VERIFICATION',
 ]);
 export type DiagnosticCategory = z.infer<typeof DiagnosticCategorySchema>;
 

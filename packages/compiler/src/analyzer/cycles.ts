@@ -4,6 +4,7 @@ export interface CycleCheckResult {
   hasCycles: boolean;
   sccs: string[][];
   unboundedCycles: string[][];
+  boundedCycles: string[][];
 }
 
 /**
@@ -62,9 +63,14 @@ export function detectCycles(cfg: ControlFlowGraph): CycleCheckResult {
     }
   }
 
+  const boundedCycles = sccs.filter((scc) => scc.some((nodeId) => {
+    const loop = cfg.nodes.get(nodeId)?.loop;
+    return Boolean(loop && (loop.max_iterations !== undefined || loop.deadline_ms !== undefined) && loop.retryable_outcomes?.length && loop.non_retryable_outcomes?.length && loop.backoff);
+  }));
   return {
     hasCycles: sccs.length > 0,
     sccs,
-    unboundedCycles: sccs, // Any cycle without bounded-loop counter is unbounded
+    unboundedCycles: sccs.filter((scc) => !boundedCycles.includes(scc)),
+    boundedCycles,
   };
 }

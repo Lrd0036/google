@@ -1,27 +1,61 @@
 variable "project_id" { type = string }
 
-# Zero-trust custom role for Control Plane
+locals {
+  identities = {
+    control = "rb-control"
+    broker  = "rb-broker"
+    worker  = "acme-worker"
+    console = "rb-console"
+    pubsub  = "rb-pubsub-push"
+  }
+}
+
+resource "google_service_account" "service" {
+  for_each     = local.identities
+  project      = var.project_id
+  account_id   = each.value
+  display_name = "Runbook Compiler ${each.key} identity"
+}
+
 resource "google_project_iam_custom_role" "control_role" {
+  project     = var.project_id
   role_id     = "runbookControlRole"
   title       = "Runbook Control Plane Role"
-  description = "Allows Firestore lease management, KMS asymmetric signing, and Pub/Sub publishing"
+  description = "Firestore execution-state access"
+  permissions = [
+    "datastore.entities.get",
+    "datastore.entities.list",
+    "datastore.entities.create",
+    "datastore.entities.update",
+  ]
+}
+
+resource "google_project_iam_custom_role" "broker_role" {
+  project     = var.project_id
+  role_id     = "runbookBrokerRole"
+  title       = "Runbook Action Broker Role"
+  description = "Firestore operation, replay, and fencing access"
   permissions = [
     "datastore.entities.get",
     "datastore.entities.create",
     "datastore.entities.update",
-    "cloudkms.cryptoKeyVersions.useToSign",
-    "pubsub.topics.publish",
   ]
 }
 
-# Zero-trust custom role for Action Broker
-resource "google_project_iam_custom_role" "broker_role" {
-  role_id     = "runbookBrokerRole"
-  title       = "Runbook Action Broker PEP Role"
-  description = "Allows secret resolution, KMS signature verification, and Cloud Storage audit log append"
-  permissions = [
-    "secretmanager.versions.access",
-    "cloudkms.cryptoKeyVersions.viewPublicKey",
-    "storage.objects.create",
-  ]
+resource "google_project_iam_member" "control_role" {
+  project = var.project_id
+  role    = google_project_iam_custom_role.control_role.name
+  member  = "serviceAccount:${google_service_account.service["control"].email}"
 }
+
+resource "google_project_iam_member" "broker_role" {
+  project = var.project_id
+  role    = google_project_iam_custom_role.broker_role.name
+  member  = "serviceAccount:${google_service_account.service["broker"].email}"
+}
+
+output "control_service_account_email" { value = google_service_account.service["control"].email }
+output "broker_service_account_email" { value = google_service_account.service["broker"].email }
+output "worker_service_account_email" { value = google_service_account.service["worker"].email }
+output "console_service_account_email" { value = google_service_account.service["console"].email }
+output "pubsub_service_account_email" { value = google_service_account.service["pubsub"].email }

@@ -20,7 +20,8 @@
     "node_id",
     "trigger_sha256",
     "target_scope_sha256",
-    "decision"
+    "decision",
+    "signature"
   ],
   "properties": {
     "typ": {
@@ -47,6 +48,15 @@
     "decision": {
       "type": "string",
       "enum": ["APPROVE", "REJECT"]
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "value"],
+      "properties": {
+        "algorithm": { "enum": ["RSA-PSS-SHA256", "ECDSA-SHA256"] },
+        "value": { "type": "string", "minLength": 1 }
+      }
     }
   }
 }

@@ -1,4 +1,5 @@
 export * from './authority.js';
+export * from './authority-evaluation.js';
 export * from './diagnostic.js';
 export * from './grants.js';
 export * from './manifest.js';

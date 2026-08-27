@@ -4,174 +4,47 @@
   "title": "Runbook Intermediate Representation (RBIR v0.1)",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "ir_version",
-    "runbook",
-    "source",
-    "capability_manifest",
-    "entry_node",
-    "context_schema",
-    "authority_model",
-    "obligations",
-    "policy_constraints",
-    "nodes",
-    "edges"
-  ],
+  "required": ["ir_version", "runbook", "source", "capability_manifest", "entry_node", "context_schema", "authority_model", "obligations", "policy_constraints", "nodes", "edges"],
   "properties": {
-    "ir_version": {
-      "type": "string",
-      "const": "rbir/v0.1"
-    },
-    "runbook": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "version", "compiled_at", "compiler_version", "tenant_id"],
-      "properties": {
-        "id": { "type": "string" },
-        "version": { "type": "integer", "minimum": 1 },
-        "compiled_at": { "type": "string", "format": "date-time" },
-        "compiler_version": { "type": "string" },
-        "tenant_id": { "type": "string" }
-      }
-    },
-    "source": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["uri", "source_sha256"],
-      "properties": {
-        "uri": { "type": "string" },
-        "source_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
-      }
-    },
-    "capability_manifest": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "version", "capability_manifest_sha256"],
-      "properties": {
-        "id": { "type": "string" },
-        "version": { "type": "integer", "minimum": 1 },
-        "capability_manifest_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
-      }
-    },
-    "entry_node": {
-      "type": "string"
-    },
-    "context_schema": {
-      "type": "object"
-    },
-    "authority_model": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["authority_id", "basis", "issuer", "grantee", "permissions"],
-        "properties": {
-          "authority_id": { "type": "string" },
-          "basis": { "type": "string", "enum": ["STATUTORY", "DELEGATED", "ADMINISTRATIVE"] },
-          "issuer": { "type": "object" },
-          "grantee": { "type": "object" },
-          "permissions": { "type": "array", "items": { "type": "string" } },
-          "constraints": { "type": "object" },
-          "delegation_chain": { "type": "array", "items": { "type": "string" } },
-          "non_delegable": { "type": "boolean" },
-          "source": { "type": "object" }
-        }
-      }
-    },
-    "obligations": {
-      "type": "array",
-      "items": { "type": "object" }
-    },
-    "policy_constraints": {
-      "type": "array",
-      "items": { "type": "object" }
-    },
-    "nodes": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["id", "kind", "description", "outcomes"],
-        "properties": {
-          "id": { "type": "string" },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "DETERMINISTIC",
-              "AGENT_JUDGMENT",
-              "ACTION",
-              "HUMAN_APPROVAL",
-              "VERIFY",
-              "TERMINAL"
-            ]
-          },
-          "description": { "type": "string" },
-          "statement_ids": {
-            "type": "array",
-            "items": { "type": "string" }
-          },
-          "timeout_ms": { "type": "integer", "minimum": 0 },
-          "outcomes": {
-            "type": "array",
-            "items": { "type": "string" }
-          },
-          "action": {
-            "type": "object",
-            "properties": {
-              "capability": { "type": "string" },
-              "parameters": { "type": "object" },
-              "idempotency_key": { "type": "string" },
-              "compensation_node": { "type": "string" }
-            }
-          },
-          "judgment": {
-            "type": "object",
-            "properties": {
-              "model_profile": { "type": "string" },
-              "prompt_template": { "type": "string" },
-              "allowed_enum": { "type": "array", "items": { "type": "string" } }
-            }
-          },
-          "approval": {
-            "type": "object",
-            "properties": {
-              "role": { "type": "string" },
-              "quorum": { "type": "integer", "minimum": 1 },
-              "timeout_ms": { "type": "integer" }
-            }
-          },
-          "verify": {
-            "type": "object",
-            "properties": {
-              "target_action_node": { "type": "string" },
-              "capability": { "type": "string" },
-              "expected_state": { "type": "object" }
-            }
-          },
-          "terminal": {
-            "type": "object",
-            "properties": {
-              "status": {
-                "type": "string",
-                "enum": ["RESOLVED", "HALTED", "ESCALATED", "MANUAL_INTERVENTION_REQUIRED", "COMPENSATED"]
-              },
-              "reason": { "type": "string" }
-            }
-          }
-        }
-      }
-    },
-    "edges": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["id", "from", "on", "to"],
-        "properties": {
-          "id": { "type": "string" },
-          "from": { "type": "string" },
-          "on": { "type": "string" },
-          "to": { "type": "string" }
-        }
-      }
-    }
+    "ir_version": { "const": "rbir/v0.1" },
+    "runbook": { "$ref": "#/$defs/runbook" },
+    "source": { "$ref": "#/$defs/source" },
+    "capability_manifest": { "$ref": "#/$defs/capabilityManifest" },
+    "entry_node": { "type": "string", "minLength": 1 },
+    "context_schema": { "$ref": "#/$defs/contextSchema" },
+    "authority_model": { "type": "array", "items": { "$ref": "#/$defs/authority" } },
+    "obligations": { "type": "array", "items": { "type": "object", "additionalProperties": false } },
+    "policy_constraints": { "type": "array", "items": { "type": "object", "additionalProperties": false } },
+    "nodes": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/node" } },
+    "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" } }
+  },
+  "$defs": {
+    "nodeKind": { "type": "string", "enum": ["DETERMINISTIC", "AGENT_JUDGMENT", "ACTION", "HUMAN_APPROVAL", "VERIFY", "TERMINAL"] },
+    "jsonPointer": { "type": "string", "pattern": "^/context(?:/(?:[^~/]|~[01])*)*$", "description": "RFC 6901 JSON Pointer rooted at the execution context." },
+    "binding": { "oneOf": [
+      { "type": "object", "additionalProperties": false, "required": ["ref"], "properties": { "ref": { "$ref": "#/$defs/jsonPointer" } } },
+      { "type": "object", "additionalProperties": false, "required": ["literal"], "properties": { "literal": {} } }
+    ] },
+    "runbook": { "type": "object", "additionalProperties": false, "required": ["id", "version", "compiled_at", "compiler_version", "tenant_id"], "properties": { "id": { "type": "string", "minLength": 1 }, "version": { "type": "integer", "minimum": 1 }, "compiled_at": { "type": "string", "format": "date-time" }, "compiler_version": { "type": "string" }, "tenant_id": { "type": "string", "minLength": 1 } } },
+    "source": { "type": "object", "additionalProperties": false, "required": ["uri", "source_sha256"], "properties": { "uri": { "type": "string" }, "source_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" } } },
+    "capabilityManifest": { "type": "object", "additionalProperties": false, "required": ["id", "version", "capability_manifest_sha256"], "properties": { "id": { "type": "string" }, "version": { "type": "integer", "minimum": 1 }, "capability_manifest_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" } } },
+    "contextSchema": { "type": "object", "additionalProperties": false, "required": ["type", "properties", "additionalProperties"], "properties": { "type": { "const": "object" }, "properties": { "type": "object", "additionalProperties": { "type": "object" } }, "required": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }, "additionalProperties": { "const": false } } },
+    "authority": { "type": "object", "additionalProperties": false, "required": ["authority_id", "basis", "issuer", "grantee", "permissions"], "properties": { "authority_id": { "type": "string" }, "basis": { "type": "string", "enum": ["STATUTORY", "DELEGATED", "ADMINISTRATIVE"] }, "issuer": { "type": "object" }, "grantee": { "type": "object" }, "permissions": { "type": "array", "items": { "type": "string" } }, "constraints": { "type": "object" }, "delegation_chain": { "type": "array", "items": { "type": "string" } }, "non_delegable": { "type": "boolean" }, "source": { "type": "object" } } },
+    "baseNode": { "type": "object", "required": ["id", "kind", "description", "outcomes"], "properties": { "id": { "type": "string", "minLength": 1 }, "kind": { "$ref": "#/$defs/nodeKind" }, "description": { "type": "string" }, "statement_ids": { "type": "array", "items": { "type": "string" } }, "timeout_ms": { "type": "integer", "minimum": 0 }, "outcomes": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true }, "loop": { "$ref": "#/$defs/loop" } } },
+    "node": { "type": "object", "unevaluatedProperties": false, "oneOf": [
+      { "allOf": [{ "$ref": "#/$defs/baseNode" }, { "type": "object", "properties": { "kind": { "const": "DETERMINISTIC" } } }] },
+      { "allOf": [{ "$ref": "#/$defs/baseNode" }, { "type": "object", "properties": { "kind": { "const": "AGENT_JUDGMENT" }, "judgment": { "$ref": "#/$defs/judgment" } }, "required": ["judgment"] }] },
+      { "allOf": [{ "$ref": "#/$defs/baseNode" }, { "type": "object", "properties": { "kind": { "const": "ACTION" }, "action": { "$ref": "#/$defs/action" } }, "required": ["action"] }] },
+      { "allOf": [{ "$ref": "#/$defs/baseNode" }, { "type": "object", "properties": { "kind": { "const": "HUMAN_APPROVAL" }, "approval": { "$ref": "#/$defs/approval" } }, "required": ["approval"] }] },
+      { "allOf": [{ "$ref": "#/$defs/baseNode" }, { "type": "object", "properties": { "kind": { "const": "VERIFY" }, "verify": { "$ref": "#/$defs/verify" } }, "required": ["verify"] }] },
+      { "allOf": [{ "$ref": "#/$defs/baseNode" }, { "type": "object", "properties": { "kind": { "const": "TERMINAL" }, "terminal": { "$ref": "#/$defs/terminal" } }, "required": ["terminal"] }] }
+    ] },
+    "action": { "type": "object", "additionalProperties": false, "required": ["capability", "parameters"], "properties": { "capability": { "type": "string" }, "parameters": { "type": "object", "additionalProperties": { "$ref": "#/$defs/binding" } }, "idempotency_key": { "type": "string" }, "compensation_node": { "type": "string" } } },
+    "judgment": { "type": "object", "additionalProperties": false, "required": ["prompt_template", "allowed_enum"], "properties": { "model_profile": { "type": "string" }, "prompt_template": { "type": "string" }, "allowed_enum": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true } } },
+    "approval": { "type": "object", "additionalProperties": false, "required": ["role"], "properties": { "role": { "type": "string" }, "quorum": { "type": "integer", "minimum": 1 }, "timeout_ms": { "type": "integer", "minimum": 1 } } },
+    "verify": { "type": "object", "additionalProperties": false, "required": ["target_action_node", "capability", "expected_state"], "properties": { "target_action_node": { "type": "string" }, "capability": { "type": "string" }, "expected_state": { "type": "object", "additionalProperties": { "$ref": "#/$defs/binding" } } } },
+    "terminal": { "type": "object", "additionalProperties": false, "required": ["status", "reason"], "properties": { "status": { "type": "string", "enum": ["RESOLVED", "HALTED", "ESCALATED", "MANUAL_INTERVENTION_REQUIRED", "COMPENSATED", "HALTED_UNMAPPED_STATE", "ESCALATED_TO_HUMAN", "POLICY_VIOLATION", "FAILED_VERIFICATION", "TIMED_OUT", "CANCELLED"] }, "reason": { "type": "string" }, "reason_code": { "type": "string" } } },
+    "loop": { "type": "object", "additionalProperties": false, "required": ["loop_id"], "properties": { "loop_id": { "type": "string" }, "max_iterations": { "type": "integer", "minimum": 1 }, "deadline_ms": { "type": "integer", "minimum": 1 }, "retryable_outcomes": { "type": "array", "minItems": 1, "items": { "type": "string" } }, "non_retryable_outcomes": { "type": "array", "minItems": 1, "items": { "type": "string" } }, "backoff": { "type": "object", "additionalProperties": false, "required": ["type", "initial_ms", "max_ms"], "properties": { "type": { "enum": ["FIXED", "EXPONENTIAL"] }, "initial_ms": { "type": "integer", "minimum": 1 }, "max_ms": { "type": "integer", "minimum": 1 } } } } },
+    "edge": { "type": "object", "additionalProperties": false, "required": ["id", "from", "on", "to"], "properties": { "id": { "type": "string", "minLength": 1 }, "from": { "type": "string", "minLength": 1 }, "on": { "type": "string", "minLength": 1, "description": "Must exactly equal one outcome declared by the from node; enforced by the RBIR semantic validator." }, "to": { "type": "string", "minLength": 1 } } }
   }
 }

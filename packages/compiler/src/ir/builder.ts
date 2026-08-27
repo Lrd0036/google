@@ -1,5 +1,6 @@
 import type { RBIRDocument, RBIRNode, RBIREdge, AuthorityObject } from '@runbook/types';
 import { RBIRDocumentSchema } from '@runbook/types';
+import { assertValidRBIRGraph } from '../validation/rbir.js';
 
 export interface RBIRBuilderOptions {
   runbookId: string;
@@ -51,7 +52,7 @@ export class RBIRBuilder {
         capability_manifest_sha256: this.options.manifestSha256,
       },
       entry_node: this.options.entryNode,
-      context_schema: this.options.contextSchema ?? { type: 'object' },
+      context_schema: this.options.contextSchema ?? { type: 'object', properties: {}, additionalProperties: false },
       authority_model: this.options.authorityModel ?? [],
       obligations: [],
       policy_constraints: [],
@@ -59,6 +60,8 @@ export class RBIRBuilder {
       edges: this.edges,
     };
 
-    return RBIRDocumentSchema.parse(rawDoc);
+    const document = RBIRDocumentSchema.parse(rawDoc);
+    assertValidRBIRGraph(document);
+    return document;
   }
 }

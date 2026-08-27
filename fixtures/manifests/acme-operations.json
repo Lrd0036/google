@@ -18,8 +18,8 @@
         "service": "acme-worker",
         "method": "POST",
         "path": "/capabilities/retry",
-        "audience": "https://acme-worker-run.app",
-        "allowed_host": "acme-worker-run.app"
+        "audience": "http://acme-worker:8082",
+        "allowed_host": "acme-worker:8082"
       },
       "input_schema": {
         "type": "object",
@@ -58,14 +58,14 @@
         "quarantine corrupted messages"
       ],
       "mode": "WRITE",
-      "risk": "R2_DISRUPTIVE_MEDIUM",
+      "risk": "R2_STATEFUL",
       "transport": {
         "type": "HTTP",
         "service": "acme-worker",
         "method": "POST",
         "path": "/capabilities/drain",
-        "audience": "https://acme-worker-run.app",
-        "allowed_host": "acme-worker-run.app"
+        "audience": "http://acme-worker:8082",
+        "allowed_host": "acme-worker:8082"
       },
       "input_schema": {
         "type": "object",
@@ -84,11 +84,42 @@
       },
       "timeout_ms": 10000,
       "idempotency": {
-        "strategy": "CLIENT_TOKEN",
-        "same_key_replay_safe": false
+        "strategy": "RECONCILABLE",
+        "same_key_replay_safe": false,
+        "reconcile_capability": "get_operation_status@1"
       },
       "approval_floor": "OPERATIONS_LEAD",
       "credential_profile": "acme-drain-identity-v1"
+    },
+    {
+      "id": "get_job_status",
+      "version": 1,
+      "description": "Read one ingestion job status.",
+      "semantic_actions": ["check job status", "verify job completion"],
+      "mode": "READ",
+      "risk": "R0_OBSERVE",
+      "transport": { "type": "HTTP", "service": "acme-worker", "method": "GET", "path": "/jobs/{job_id}", "audience": "http://acme-worker:8082", "allowed_host": "acme-worker:8082" },
+      "input_schema": { "type": "object", "additionalProperties": false, "required": ["job_id"], "properties": { "job_id": { "type": "string" } } },
+      "output_schema": { "type": "object", "required": ["job_id", "status"], "properties": { "job_id": { "type": "string" }, "status": { "type": "string" } } },
+      "timeout_ms": 3000,
+      "idempotency": { "strategy": "NATIVE_KEY", "header": "Idempotency-Key", "same_key_replay_safe": true },
+      "approval_floor": "PREAPPROVED_RUNBOOK",
+      "credential_profile": "acme-read-identity-v1"
+    },
+    {
+      "id": "get_operation_status",
+      "version": 1,
+      "description": "Read the status of a previously submitted operation.",
+      "semantic_actions": ["reconcile operation", "check operation status"],
+      "mode": "READ",
+      "risk": "R0_OBSERVE",
+      "transport": { "type": "HTTP", "service": "acme-worker", "method": "GET", "path": "/operations/{operation_id}", "audience": "http://acme-worker:8082", "allowed_host": "acme-worker:8082" },
+      "input_schema": { "type": "object", "additionalProperties": false, "required": ["operation_id"], "properties": { "operation_id": { "type": "string" } } },
+      "output_schema": { "type": "object", "required": ["operation_id", "status"], "properties": { "operation_id": { "type": "string" }, "status": { "type": "string" } } },
+      "timeout_ms": 3000,
+      "idempotency": { "strategy": "NATIVE_KEY", "header": "Idempotency-Key", "same_key_replay_safe": true },
+      "approval_floor": "PREAPPROVED_RUNBOOK",
+      "credential_profile": "acme-read-identity-v1"
     }
   ]
 }

@@ -4,10 +4,11 @@ export const CapabilityModeSchema = z.enum(['READ', 'WRITE']);
 export type CapabilityMode = z.infer<typeof CapabilityModeSchema>;
 
 export const RiskTierSchema = z.enum([
-  'R0_READ_ONLY',
+  'R0_OBSERVE',
   'R1_REVERSIBLE_LOW',
-  'R2_DISRUPTIVE_MEDIUM',
-  'R3_DESTRUCTIVE_HIGH',
+  'R2_STATEFUL',
+  'R3_HIGH_IMPACT',
+  'R4_IRREVERSIBLE',
 ]);
 export type RiskTier = z.infer<typeof RiskTierSchema>;
 
@@ -22,9 +23,10 @@ export const TransportSchema = z.object({
 export type Transport = z.infer<typeof TransportSchema>;
 
 export const IdempotencyPolicySchema = z.object({
-  strategy: z.enum(['NATIVE_KEY', 'CLIENT_TOKEN', 'NATURALLY_IDEMPOTENT', 'NON_IDEMPOTENT']),
+  strategy: z.enum(['NATIVE_KEY', 'RECONCILABLE', 'TRANSACTIONAL_LOCAL', 'NONE']),
   header: z.string().optional(),
   same_key_replay_safe: z.boolean().optional(),
+  reconcile_capability: z.string().optional(),
 });
 export type IdempotencyPolicy = z.infer<typeof IdempotencyPolicySchema>;
 
@@ -57,6 +59,14 @@ export const CapabilityManifestSchema = z.object({
   manifest_version: z.literal('rb-capabilities/v0.1'),
   id: z.string(),
   version: z.number().int().positive(),
-  capabilities: z.array(CapabilityDefinitionSchema),
+  capabilities: z.array(CapabilityDefinitionSchema).superRefine((capabilities, ctx) => {
+    const seen = new Set<string>();
+    capabilities.forEach((capability, index) => {
+      if (seen.has(capability.id)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: [index, 'id'], message: 'Capability id must be unique.' });
+      }
+      seen.add(capability.id);
+    });
+  }),
 });
 export type CapabilityManifest = z.infer<typeof CapabilityManifestSchema>;

@@ -2,6 +2,7 @@ export interface ADRResult {
   detectedAmbiguous: number;
   totalGroundTruthAmbiguous: number;
   recall: number;
+  precision?: number;
 }
 
 /**

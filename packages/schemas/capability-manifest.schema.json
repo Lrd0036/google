@@ -19,6 +19,7 @@
     "version": { "type": "integer", "minimum": 1 },
     "capabilities": {
       "type": "array",
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -52,15 +53,17 @@
           "risk": {
             "type": "string",
             "enum": [
-              "R0_READ_ONLY",
+              "R0_OBSERVE",
               "R1_REVERSIBLE_LOW",
-              "R2_DISRUPTIVE_MEDIUM",
-              "R3_DESTRUCTIVE_HIGH"
+              "R2_STATEFUL",
+              "R3_HIGH_IMPACT",
+              "R4_IRREVERSIBLE"
             ]
           },
           "transport": {
             "type": "object",
             "required": ["type"],
+            "additionalProperties": false,
             "properties": {
               "type": { "type": "string", "enum": ["HTTP", "GRPC", "PUBSUB", "CLOUD_FUNCTION"] },
               "service": { "type": "string" },
@@ -79,10 +82,11 @@
             "properties": {
               "strategy": {
                 "type": "string",
-                "enum": ["NATIVE_KEY", "CLIENT_TOKEN", "NATURALLY_IDEMPOTENT", "NON_IDEMPOTENT"]
+                "enum": ["NATIVE_KEY", "RECONCILABLE", "TRANSACTIONAL_LOCAL", "NONE"]
               },
               "header": { "type": "string" },
-              "same_key_replay_safe": { "type": "boolean" }
+              "same_key_replay_safe": { "type": "boolean" },
+              "reconcile_capability": { "type": "string" }
             }
           },
           "approval_floor": {

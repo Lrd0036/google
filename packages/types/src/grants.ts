@@ -19,6 +19,11 @@ export const ActionGrantSchema = z.object({
   lease_generation: z.number().int(),
   control_epoch: z.number().int(),
   authority_assertion_ids: z.array(z.string()).default([]),
+  signature: z.object({
+    algorithm: z.enum(['RSA-PSS-SHA256', 'ECDSA-SHA256']),
+    key_id: z.string().min(1),
+    value: z.string().min(1),
+  }),
 });
 export type ActionGrant = z.infer<typeof ActionGrantSchema>;
 
@@ -39,5 +44,6 @@ export const ApprovalAssertionSchema = z.object({
   trigger_sha256: z.string().regex(/^sha256:[a-f0-9]{64}$/),
   target_scope_sha256: z.string().regex(/^sha256:[a-f0-9]{64}$/),
   decision: z.enum(['APPROVE', 'REJECT']),
+  signature: z.object({ algorithm: z.enum(['RSA-PSS-SHA256', 'ECDSA-SHA256']), value: z.string().min(1) }),
 });
 export type ApprovalAssertion = z.infer<typeof ApprovalAssertionSchema>;

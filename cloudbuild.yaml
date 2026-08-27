@@ -1,0 +1,33 @@
+steps:
+  - id: validate-tag
+    name: gcr.io/cloud-builders/gcloud@sha256:3bcfea90f299ae18ced1c0bce4ec035bc4d19049f16c22690ba7c4e730478fbc
+    entrypoint: bash
+    args: ['-euc', '[[ "${_TAG}" != "latest" && "${_TAG}" != "unset-immutable-tag-required" && "${_TAG}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]']
+    waitFor: ['-']
+  - id: build-control
+    name: gcr.io/cloud-builders/docker@sha256:2e8d40d8e48dc14fab4213d5e532d74f63fd403d9e8d7f6463096a75820286c3
+    waitFor: ['validate-tag']
+    args: ['build', '-f', 'apps/control/Dockerfile', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/runbook-compiler/rb-control:${_TAG}', '.']
+  - id: build-broker
+    name: gcr.io/cloud-builders/docker@sha256:2e8d40d8e48dc14fab4213d5e532d74f63fd403d9e8d7f6463096a75820286c3
+    waitFor: ['validate-tag']
+    args: ['build', '-f', 'apps/broker/Dockerfile', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/runbook-compiler/rb-broker:${_TAG}', '.']
+  - id: build-worker
+    name: gcr.io/cloud-builders/docker@sha256:2e8d40d8e48dc14fab4213d5e532d74f63fd403d9e8d7f6463096a75820286c3
+    waitFor: ['validate-tag']
+    args: ['build', '-f', 'apps/acme-worker/Dockerfile', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/runbook-compiler/acme-worker:${_TAG}', '.']
+  - id: build-console
+    name: gcr.io/cloud-builders/docker@sha256:2e8d40d8e48dc14fab4213d5e532d74f63fd403d9e8d7f6463096a75820286c3
+    waitFor: ['validate-tag']
+    args: ['build', '-f', 'apps/console/Dockerfile', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/runbook-compiler/rb-console:${_TAG}', '.']
+images:
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/runbook-compiler/rb-control:${_TAG}'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/runbook-compiler/rb-broker:${_TAG}'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/runbook-compiler/acme-worker:${_TAG}'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/runbook-compiler/rb-console:${_TAG}'
+substitutions:
+  _REGION: us-central1
+  _TAG: unset-immutable-tag-required
+options:
+  machineType: E2_HIGHCPU_8
+  logging: CLOUD_LOGGING_ONLY

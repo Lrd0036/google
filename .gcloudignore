@@ -1,0 +1,10 @@
+.git/
+.terraform/
+.venv/
+**/__pycache__/
+**/node_modules/
+**/dist/
+**/*.tsbuildinfo
+.local/
+*.tfstate
+*.tfstate.*

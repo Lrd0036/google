@@ -30,7 +30,7 @@
         "properties": {
           "code": {
             "type": "string",
-            "pattern": "^RBK-[1-9][0-9]{2}$"
+            "pattern": "^RBK-(?:[1-4][0-9]{2}|50[0-5])$"
           },
           "severity": {
             "type": "string",
@@ -47,7 +47,9 @@
               "DEAD_END_OR_UNREACHABLE",
               "UNKNOWN_CAPABILITY",
               "TYPE_MISMATCH",
-              "AUTHORITY_ESCALATION"
+              "AUTHORITY_ESCALATION",
+            "FORBIDDEN_MUTATION",
+            "UNSAFE_VERIFICATION"
             ]
           },
           "message": { "type": "string" },

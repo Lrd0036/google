@@ -30,6 +30,12 @@ services:
       - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
       - GCP_PROJECT=runbook-local-dev
       - MODEL_ADAPTER=fake
+      - DEPLOYMENT_MODE=local
+      - LOCAL_ORCHESTRATION=true
+      - BROKER_URL=http://rb-broker:8081
+      - LOCAL_AUTHORITY=true
+      - LOCAL_AUTHORITY_ID=local-incident-commander
+      - LOCAL_OPERATOR_PRINCIPALS=local-operator
     depends_on:
       - firestore-emulator
       - pubsub-emulator
@@ -44,8 +50,12 @@ services:
     environment:
       - PORT=8081
       - GCP_PROJECT=runbook-local-dev
+      - LOCAL_TRANSPORT=true
+      - ALLOWED_CAPABILITY_ORIGINS=http://acme-worker:8082
+      - FIRESTORE_EMULATOR_HOST=firestore-emulator:8085
     depends_on:
       - acme-worker
+      - firestore-emulator
 
   acme-worker:
     build:
@@ -56,3 +66,13 @@ services:
       - '8082:8082'
     environment:
       - PORT=8082
+
+  rb-console:
+    build:
+      context: ../..
+      dockerfile: apps/console/Dockerfile
+    container_name: rb-console
+    ports:
+      - '${CONSOLE_PORT:-4173}:8080'
+    depends_on:
+      - rb-control

@@ -12,3 +12,19 @@ output "audit_bucket_name" {
   description = "Immutable audit log bucket name"
   value       = module.storage.audit_bucket_name
 }
+
+output "worker_service_url" {
+  value = module.cloud_run.worker_url
+}
+
+output "console_service_url" {
+  value = module.cloud_run.console_url
+}
+
+output "artifact_repository_url" {
+  value = module.artifact_registry.repository_url
+}
+
+output "kms_key_version" {
+  value = module.kms.action_grant_key_version_name
+}

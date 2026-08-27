@@ -20,7 +20,7 @@ resource "google_firestore_index" "execution_history_index" {
   }
 
   fields {
-    field_path = "runbook_id"
+    field_path = "runbook.id"
     order      = "ASCENDING"
   }
 

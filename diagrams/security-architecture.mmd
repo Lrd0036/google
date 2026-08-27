@@ -1,0 +1,98 @@
+%% Runbook Compiler security architecture
+%% Current deployed state: project-87ae1ae6-1a71-468d-943, 2026-08-27
+flowchart LR
+  classDef external fill:#f8fafc,stroke:#64748b,color:#0f172a,stroke-width:1px;
+  classDef public fill:#fef3c7,stroke:#d97706,color:#451a03,stroke-width:2px;
+  classDef private fill:#dbeafe,stroke:#2563eb,color:#172554,stroke-width:2px;
+  classDef security fill:#dcfce7,stroke:#16a34a,color:#052e16,stroke-width:2px;
+  classDef contained fill:#fee2e2,stroke:#dc2626,color:#450a0a,stroke-width:2px;
+  classDef data fill:#ede9fe,stroke:#7c3aed,color:#2e1065,stroke-width:2px;
+  classDef local fill:#f1f5f9,stroke:#64748b,color:#0f172a,stroke-dasharray:5 5;
+  classDef future fill:#fff7ed,stroke:#ea580c,color:#431407,stroke-width:2px,stroke-dasharray:7 4;
+
+  subgraph USERS["External principals"]
+    OP["Operator browser"]:::external
+    ADMIN["Authenticated project operator"]:::external
+    UNTRUSTED["Unauthenticated caller"]:::external
+  end
+
+  subgraph GCP["Google Cloud project — project-87ae1ae6-1a71-468d-943"]
+    direction LR
+
+    subgraph EDGE["Cloud Run ingress and identity boundary"]
+      CONSOLE["rb-console<br/>Public static UI<br/>HTTP 200"]:::public
+      CONTROL["rb-control<br/>IAM authenticated<br/>Cloud mode: health only"]:::contained
+      BROKER["rb-broker<br/>IAM authenticated PEP<br/>No Control invoker binding"]:::private
+      WORKER["acme-worker<br/>Private capability provider<br/>Broker invoker only"]:::private
+    end
+
+    subgraph POLICY["Broker enforcement boundary"]
+      FENCE["Authoritative execution fence<br/>RUNNING + lease + epoch + artifact hashes"]:::security
+      GRANTS["Action Grant checks<br/>KMS signature + issuer/audience<br/>expiry + replay + schema"]:::security
+      DEST["Destination policy<br/>exact origin allowlist<br/>manual redirect rejection"]:::security
+      IDEM["Operation identity<br/>execution + node + generation<br/>capability + parameter digest"]:::security
+    end
+
+    subgraph STATE["Authoritative and supporting state"]
+      FIRESTORE[("Firestore<br/>executions, fencing,<br/>replays, operations")]:::data
+      KMS["Cloud KMS<br/>action-grant-signer<br/>Broker: public-key view only"]:::data
+      PUBSUB["Pub/Sub resume subscription<br/>Provisioned, but no Control invoker"]:::contained
+      AUDIT[("Audit bucket<br/>Retention configured<br/>Cloud writer not yet wired")]:::contained
+    end
+
+    subgraph SUPPLY["Software supply-chain controls"]
+      BUILD["Cloud Build<br/>Digest-pinned builders<br/>Explicit immutable tag"]:::security
+      REGISTRY[("Artifact Registry<br/>Immutable tags")]:::security
+      IMAGE["security3 images<br/>Non-root runtime<br/>Production dependencies only<br/>0 known scanner findings"]:::security
+    end
+  end
+
+  subgraph LOCAL["Explicit local-development trust boundary"]
+    LOCAL_CONTROL["Control local mode<br/>Local authority ID and operator allowlist"]:::local
+    EMULATORS["Firestore + Pub/Sub emulators"]:::local
+    LOCAL_KEYS["Ephemeral local signing keys<br/>Self-signed client keys rejected"]:::local
+  end
+
+  subgraph FUTURE["Required before cloud execution can be restored"]
+    ADMISSION["Trusted tenant and principal admission"]:::future
+    AUTHORITY["Registered approval authorities<br/>and trusted key lifecycle"]:::future
+    RBIR["Authoritative immutable RBIR store"]:::future
+    AUDIT_SINK["Immutable audit delivery<br/>with owner and alerting"]:::future
+  end
+
+  OP -->|"HTTPS"| CONSOLE
+  ADMIN -->|"OIDC / Cloud Run IAM"| CONTROL
+  UNTRUSTED -->|"403"| CONTROL
+  UNTRUSTED -->|"403"| BROKER
+  UNTRUSTED -->|"403"| WORKER
+
+  CONSOLE -.->|"No live cloud authority path"| CONTROL
+  CONTROL -.->|"Execution, approval, and resume routes return 404"| BROKER
+  PUBSUB -.->|"run.invoker removed"| CONTROL
+  CONTROL -.->|"No cloud audit events while contained"| AUDIT
+
+  BROKER --> GRANTS
+  BROKER --> FENCE
+  BROKER --> DEST
+  BROKER --> IDEM
+  FENCE -->|"authoritative read"| FIRESTORE
+  IDEM -->|"atomic replay and operation records"| FIRESTORE
+  GRANTS -->|"get public key"| KMS
+  DEST -->|"OIDC-authenticated allowed origin"| WORKER
+
+  BUILD -->|"push"| REGISTRY
+  REGISTRY --> IMAGE
+  IMAGE --> CONTROL
+  IMAGE --> BROKER
+  IMAGE --> WORKER
+  IMAGE --> CONSOLE
+
+  LOCAL_CONTROL --> EMULATORS
+  LOCAL_KEYS --> LOCAL_CONTROL
+
+  ADMISSION -.-> CONTROL
+  AUTHORITY -.-> CONTROL
+  RBIR -.-> CONTROL
+  CONTROL -.-> AUDIT_SINK
+
+  linkStyle default stroke:#64748b,stroke-width:1.5px;

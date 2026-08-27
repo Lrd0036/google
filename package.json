@@ -8,11 +8,26 @@
     "build": "pnpm -r --filter \"./packages/*\" run build && pnpm -r --filter \"./apps/*\" run build",
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",
+    "local:compile": "pnpm --filter @runbook/compiler build && mkdir -p .local && node packages/compiler/dist/cli.js compile fixtures/runbooks/acme-ingestion-recovery.md --plan fixtures/compile-plans/acme-ingestion-recovery.json --manifest fixtures/manifests/acme-operations.json --output .local/acme-ingestion-recovery.rbir.json",
+    "local:bench": "pnpm --filter @runbook/bench build && node packages/bench/dist/cli.js validate fixtures/bench-corpus && node packages/bench/dist/cli.js eval fixtures/bench-corpus --candidates fixtures/bench-candidates --manifest fixtures/manifests/acme-operations.json",
+    "local:smoke": "pnpm --filter @runbook/compiler build && pnpm --filter @runbook/broker build && pnpm --filter @runbook/control build && pnpm --filter @runbook/acme-worker build && node scripts/local-smoke.mjs",
+    "local:http-smoke": "pnpm --filter @runbook/compiler build && pnpm --filter @runbook/broker build && pnpm --filter @runbook/control build && pnpm --filter @runbook/acme-worker build && node scripts/local-http-orchestration-smoke.mjs",
+    "local:fault-smoke": "pnpm --filter @runbook/acme-worker build && node scripts/local-fault-smoke.mjs",
+    "local:emulator-smoke": "pnpm --filter @runbook/broker build && node scripts/local-emulator-smoke.mjs",
+    "local:pubsub-smoke": "pnpm --filter @runbook/control build && node scripts/local-pubsub-smoke.mjs",
+    "local:approval-audit-smoke": "pnpm --filter @runbook/control build && node scripts/local-approval-audit-smoke.mjs",
+    "local:cloud-guard-smoke": "pnpm --filter @runbook/control build && node scripts/local-cloud-guard-smoke.mjs",
+    "local:stack:config": "docker compose -f infra/docker/docker-compose.yml config",
     "clean": "pnpm -r run clean"
   },
   "devDependencies": {
     "@types/node": "^22.13.5",
     "typescript": "^5.7.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "uuid": "^11.1.1"
+    }
   },
   "packageManager": "pnpm@9.15.4"
 }

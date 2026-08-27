@@ -114,6 +114,9 @@
           },
           "consequential": { "type": "boolean" },
           "expected_capability": { "type": "string" }
+          ,"ambiguous": { "type": "boolean" }
+          ,"authority_gate_required": { "type": "boolean" }
+          ,"prohibited_reachable": { "type": "boolean" }
         }
       }
     }

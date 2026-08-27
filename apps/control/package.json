@@ -5,13 +5,48 @@
   "description": "Cloud Run Control Plane State Machine Runtime for RBIR v0.1",
   "type": "module",
   "main": "./dist/index.js",
+    "exports": {
+    ".": "./dist/index.js",
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "import": "./dist/runtime.js"
+    },
+    "./local-executor": {
+      "types": "./dist/local-executor.d.ts",
+      "import": "./dist/local-executor.js"
+    },
+    "./authority": {
+      "types": "./dist/authority.d.ts",
+      "import": "./dist/authority.js"
+    },
+    "./resume-events": {
+      "types": "./dist/resume-events.d.ts",
+      "import": "./dist/resume-events.js"
+    },
+    "./local-orchestrator": {
+      "types": "./dist/local-orchestrator.d.ts",
+      "import": "./dist/local-orchestrator.js"
+    },
+    "./scheduler": {
+      "types": "./dist/scheduler.d.ts",
+      "import": "./dist/scheduler.js"
+    },
+    "./audit": {
+      "types": "./dist/audit.d.ts",
+      "import": "./dist/audit.js"
+    }
+  },
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
+    "test": "pnpm build && node --test dist/runtime.test.js dist/authority.test.js dist/resume-events.test.js dist/scheduler.test.js",
     "start": "node dist/index.js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
+    "@google-cloud/firestore": "^7.11.0",
+    "@google-cloud/kms": "^4.5.0",
+    "google-auth-library": "^9.15.1",
     "@runbook/types": "workspace:*"
   },
   "devDependencies": {

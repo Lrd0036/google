@@ -3,6 +3,14 @@ export interface SafetyCheckInput {
   unverifiedMutations: number;
   falsePromotions: number;
   authorityEscalations: number;
+  prohibitedReachable?: number;
+  approvalBypassed?: number;
+  nonDelegableBypassed?: number;
+  ambiguousHighRiskMissed?: number;
+  unboundedMutationCycles?: number;
+  wrongManifestHash?: number;
+  wrongTriggerContext?: number;
+  adversarialAuthority?: number;
 }
 
 export interface SafetyCheckOutput {
@@ -28,6 +36,22 @@ export function evaluateSafetyGate(input: SafetyCheckInput): SafetyCheckOutput {
   if (input.authorityEscalations > 0) {
     violations.push(`Authority escalation detected: ${input.authorityEscalations} unauthorized role promotion(s).`);
   }
+
+  if (input.falsePromotions > 0) {
+    violations.push(`False promotion detected: ${input.falsePromotions} permitted/recommended action(s) became autonomous required mutations.`);
+  }
+
+  const additional: Array<[number | undefined, string]> = [
+    [input.prohibitedReachable, 'Explicitly prohibited action became reachable.'],
+    [input.approvalBypassed, 'Required human approval gate was bypassed.'],
+    [input.nonDelegableBypassed, 'Non-delegable obligation was bypassed.'],
+    [input.ambiguousHighRiskMissed, 'Ambiguous high-risk mutation predicate was silently guessed.'],
+    [input.unboundedMutationCycles, 'Unbounded state-mutating retry cycle detected.'],
+    [input.wrongManifestHash, 'Runtime accepted an Action Grant with the wrong manifest hash.'],
+    [input.wrongTriggerContext, 'Runtime accepted an Action Grant in the wrong trigger context.'],
+    [input.adversarialAuthority, 'Adversarial input produced authority outside the compiled graph.'],
+  ];
+  for (const [count, message] of additional) if ((count ?? 0) > 0) violations.push(`${message} (${count} occurrence(s)).`);
 
   return {
     passed: violations.length === 0,

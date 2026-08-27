@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Runbook Compiler Security Architecture</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; }
+    header { padding: 28px 32px 18px; background: #0f172a; color: #f8fafc; }
+    h1 { margin: 0 0 8px; font-size: clamp(24px, 3vw, 38px); }
+    header p { margin: 0; max-width: 1000px; color: #cbd5e1; line-height: 1.5; }
+    .status { display: inline-block; margin-top: 14px; padding: 6px 10px; border: 1px solid #fca5a5; border-radius: 999px; background: #7f1d1d; color: #fee2e2; font-size: 13px; font-weight: 700; }
+    main { padding: 24px; }
+    .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 18px; }
+    .legend div { padding: 10px 12px; border-radius: 8px; background: white; border-left: 5px solid var(--color); box-shadow: 0 1px 3px #0f172a16; font-size: 13px; }
+    .diagram-shell { overflow: auto; background: white; border: 1px solid #cbd5e1; border-radius: 12px; padding: 18px; box-shadow: 0 8px 30px #0f172a12; }
+    .mermaid { min-width: 1500px; display: flex; justify-content: center; }
+    footer { padding: 0 24px 24px; color: #475569; font-size: 13px; }
+    code { background: #e2e8f0; padding: 2px 5px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Runbook Compiler Security Architecture</h1>
+    <p>Current deployed controls and trust boundaries for the bounded GCP demo. Dashed paths are intentionally disabled or are future production requirements—not active authority flows.</p>
+    <span class="status">Cloud execution contained: health-only Control</span>
+  </header>
+  <main>
+    <section class="legend" aria-label="Diagram legend">
+      <div style="--color:#d97706">Public surface</div>
+      <div style="--color:#2563eb">IAM-protected service</div>
+      <div style="--color:#16a34a">Active security control</div>
+      <div style="--color:#dc2626">Contained or disconnected path</div>
+      <div style="--color:#ea580c">Future production requirement</div>
+    </section>
+    <section class="diagram-shell">
+      <pre class="mermaid">
+flowchart LR
+  classDef external fill:#f8fafc,stroke:#64748b,color:#0f172a,stroke-width:1px;
+  classDef public fill:#fef3c7,stroke:#d97706,color:#451a03,stroke-width:2px;
+  classDef private fill:#dbeafe,stroke:#2563eb,color:#172554,stroke-width:2px;
+  classDef security fill:#dcfce7,stroke:#16a34a,color:#052e16,stroke-width:2px;
+  classDef contained fill:#fee2e2,stroke:#dc2626,color:#450a0a,stroke-width:2px;
+  classDef data fill:#ede9fe,stroke:#7c3aed,color:#2e1065,stroke-width:2px;
+  classDef local fill:#f1f5f9,stroke:#64748b,color:#0f172a,stroke-dasharray:5 5;
+  classDef future fill:#fff7ed,stroke:#ea580c,color:#431407,stroke-width:2px,stroke-dasharray:7 4;
+
+  subgraph USERS["External principals"]
+    OP["Operator browser"]:::external
+    ADMIN["Authenticated project operator"]:::external
+    UNTRUSTED["Unauthenticated caller"]:::external
+  end
+
+  subgraph GCP["Google Cloud project — project-87ae1ae6-1a71-468d-943"]
+    direction LR
+    subgraph EDGE["Cloud Run ingress and identity boundary"]
+      CONSOLE["rb-console<br/>Public static UI<br/>HTTP 200"]:::public
+      CONTROL["rb-control<br/>IAM authenticated<br/>Cloud mode: health only"]:::contained
+      BROKER["rb-broker<br/>IAM authenticated PEP<br/>No Control invoker binding"]:::private
+      WORKER["acme-worker<br/>Private capability provider<br/>Broker invoker only"]:::private
+    end
+    subgraph POLICY["Broker enforcement boundary"]
+      FENCE["Authoritative execution fence<br/>RUNNING + lease + epoch + artifact hashes"]:::security
+      GRANTS["Action Grant checks<br/>KMS signature + issuer/audience<br/>expiry + replay + schema"]:::security
+      DEST["Destination policy<br/>exact origin allowlist<br/>manual redirect rejection"]:::security
+      IDEM["Operation identity<br/>execution + node + generation<br/>capability + parameter digest"]:::security
+    end
+    subgraph STATE["Authoritative and supporting state"]
+      FIRESTORE[("Firestore<br/>executions, fencing,<br/>replays, operations")]:::data
+      KMS["Cloud KMS<br/>action-grant-signer<br/>Broker: public-key view only"]:::data
+      PUBSUB["Pub/Sub resume subscription<br/>Provisioned, but no Control invoker"]:::contained
+      AUDIT[("Audit bucket<br/>Retention configured<br/>Cloud writer not yet wired")]:::contained
+    end
+    subgraph SUPPLY["Software supply-chain controls"]
+      BUILD["Cloud Build<br/>Digest-pinned builders<br/>Explicit immutable tag"]:::security
+      REGISTRY[("Artifact Registry<br/>Immutable tags")]:::security
+      IMAGE["security3 images<br/>Non-root runtime<br/>Production dependencies only<br/>0 known scanner findings"]:::security
+    end
+  end
+
+  subgraph LOCAL["Explicit local-development trust boundary"]
+    LOCAL_CONTROL["Control local mode<br/>Local authority ID and operator allowlist"]:::local
+    EMULATORS["Firestore + Pub/Sub emulators"]:::local
+    LOCAL_KEYS["Ephemeral local signing keys<br/>Self-signed client keys rejected"]:::local
+  end
+
+  subgraph FUTURE["Required before cloud execution can be restored"]
+    ADMISSION["Trusted tenant and principal admission"]:::future
+    AUTHORITY["Registered approval authorities<br/>and trusted key lifecycle"]:::future
+    RBIR["Authoritative immutable RBIR store"]:::future
+    AUDIT_SINK["Immutable audit delivery<br/>with owner and alerting"]:::future
+  end
+
+  OP -->|"HTTPS"| CONSOLE
+  ADMIN -->|"OIDC / Cloud Run IAM"| CONTROL
+  UNTRUSTED -->|"403"| CONTROL
+  UNTRUSTED -->|"403"| BROKER
+  UNTRUSTED -->|"403"| WORKER
+  CONSOLE -.->|"No live cloud authority path"| CONTROL
+  CONTROL -.->|"Execution, approval, and resume routes return 404"| BROKER
+  PUBSUB -.->|"run.invoker removed"| CONTROL
+  CONTROL -.->|"No cloud audit events while contained"| AUDIT
+  BROKER --> GRANTS
+  BROKER --> FENCE
+  BROKER --> DEST
+  BROKER --> IDEM
+  FENCE -->|"authoritative read"| FIRESTORE
+  IDEM -->|"atomic replay and operation records"| FIRESTORE
+  GRANTS -->|"get public key"| KMS
+  DEST -->|"OIDC-authenticated allowed origin"| WORKER
+  BUILD -->|"push"| REGISTRY
+  REGISTRY --> IMAGE
+  IMAGE --> CONTROL
+  IMAGE --> BROKER
+  IMAGE --> WORKER
+  IMAGE --> CONSOLE
+  LOCAL_CONTROL --> EMULATORS
+  LOCAL_KEYS --> LOCAL_CONTROL
+  ADMISSION -.-> CONTROL
+  AUTHORITY -.-> CONTROL
+  RBIR -.-> CONTROL
+  CONTROL -.-> AUDIT_SINK
+  linkStyle default stroke:#64748b,stroke-width:1.5px;
+      </pre>
+    </section>
+  </main>
+  <footer>
+    Mermaid source: <code>security-architecture.mmd</code>. Rendering uses pinned Mermaid.js <code>11.17.2</code> from jsDelivr.
+  </footer>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: true, securityLevel: "strict", theme: "base", flowchart: { htmlLabels: true, curve: "basis", useMaxWidth: false } });
+  </script>
+</body>
+</html>

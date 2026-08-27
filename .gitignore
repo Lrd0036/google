@@ -4,12 +4,15 @@ build/
 .turbo/
 *.log
 .DS_Store
+__pycache__/
+.venv/
 .env
 .env.*
 !.env.example
 !.env.local.example
 *.tsbuildinfo
 coverage/
+.local/
 .terraform/
 *.tfstate
 *.tfstate.*
