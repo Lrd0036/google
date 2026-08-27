@@ -1,0 +1,21 @@
+{
+  "name": "@runbook/broker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Action Broker Policy Enforcement Point (PEP) for bounded capability execution",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "dependencies": {
+    "@runbook/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "typescript": "^5.7.3"
+  }
+}
