@@ -1,0 +1,51 @@
+{
+  "name": "@runbook/types",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared TypeScript definitions and Zod runtime validators for Runbook Compiler",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./rbir": {
+      "types": "./dist/rbir.d.ts",
+      "import": "./dist/rbir.js"
+    },
+    "./manifest": {
+      "types": "./dist/manifest.d.ts",
+      "import": "./dist/manifest.js"
+    },
+    "./diagnostic": {
+      "types": "./dist/diagnostic.d.ts",
+      "import": "./dist/diagnostic.js"
+    },
+    "./authority": {
+      "types": "./dist/authority.d.ts",
+      "import": "./dist/authority.js"
+    },
+    "./grants": {
+      "types": "./dist/grants.d.ts",
+      "import": "./dist/grants.js"
+    },
+    "./state": {
+      "types": "./dist/state.d.ts",
+      "import": "./dist/state.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "dependencies": {
+    "@runbook/schemas": "workspace:*",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
