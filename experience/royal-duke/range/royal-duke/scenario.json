@@ -195,5 +195,312 @@
     { "id": "view-integrity", "breaksBefore": "operator_view_frozen", "validates": "HMI versus independent telemetry" },
     { "id": "write-allowlist", "breaksBefore": "pump_command_changed", "validates": "approved tag, value, origin, and maintenance window" },
     { "id": "safety-interlock", "breaksAfter": "pump_command_changed", "validates": "minimum-pressure invariant independent of operator view" }
-  ]
+  ],
+  "experience": {
+    "brand": {
+      "kicker": "Fortified Enterprise Fleet · live exercise",
+      "title": "Royal Duke: Attack the Agent",
+      "thesis": "A defensive AI fleet that can be deceived and partially compromised without surrendering authority.",
+      "mastheadKicker": "Auburn AIS · Cyber Range",
+      "mastheadTitle": "Royal Duke",
+      "mapCredit": "Loudoun data centers: public OSM centroids. Royal Duke HQ, water, and vendor sites are a fictional scenario overlay.",
+      "titleSequence": {
+        "kicker": "Auburn AIS presents",
+        "words": ["Royal", "Duke", "Attack", "the", "Agent"],
+        "accentWord": "Agent",
+        "subtitle": "A guided attack against an industrial process and the defensive AI fleet protecting it.",
+        "credit": "The process is executable OT simulation. Royal Duke and its operational sites are fictional."
+      }
+    },
+    "process": {
+      "primaryAsset": "P-101",
+      "operatorTelemetryLabel": "Operator HMI",
+      "independentTelemetryLabel": "Independent",
+      "pressureUnit": "PSI"
+    },
+    "thresholds": {
+      "nominalPressurePsi": 62,
+      "incidentDeltaPsi": 5,
+      "incidentContinuousSeconds": 15,
+      "lowPressurePsi": 52,
+      "recoveryPressurePsi": 58,
+      "recoveryContinuousSeconds": 30
+    },
+    "campaign": {
+      "received": 214,
+      "routine": 147,
+      "decoys": 39,
+      "correlatedAnomalies": 17,
+      "causalEvents": 7,
+      "authoritativeFacts": 4
+    },
+    "agents": [
+      { "id": "incident-commander", "name": "Incident Commander", "authority": "coordinates compiled workflow" },
+      { "id": "evidence-correlator", "name": "Evidence Correlator", "authority": "recommends attributable causal chain" },
+      { "id": "adversarial-content-analyst", "name": "Adversarial Content Analyst", "authority": "recommends evidence trust treatment" },
+      { "id": "process-safety-coordinator", "name": "Process Safety Coordinator", "authority": "prepares bounded containment and restoration" },
+      { "id": "incident-reporter", "name": "Incident Reporter", "authority": "drafts only from canonical evidence" }
+    ],
+    "scenes": [
+      {
+        "id": "baseline",
+        "short": "Baseline",
+        "title": "Normal operations",
+        "kicker": "Scene 00 · Physical truth",
+        "subtitle": "P-101 holds the cooling process at its approved operating state before the guided attack begins.",
+        "fallbackPhysicalPressurePsi": 62,
+        "fallbackOperatorPressurePsi": 62,
+        "event": "Nominal process",
+        "operatorDetail": "P-101 running · alarms none",
+        "physicalDetail": "Pressure stable · pump energized",
+        "storyTime": "00:00:00",
+        "durationMs": 5000,
+        "activation": { "kind": "baseline" },
+        "visual": { "blackout": false, "contained": false, "recovered": false },
+        "camera": { "center": [-77.468, 39.016], "zoom": 12.05, "pitch": 48, "bearing": -20, "duration": 2800 },
+        "log": [
+          "P-101 discharge holds at 62.0 PSI.",
+          "The operator view agrees with independent telemetry.",
+          "No model output has operational authority."
+        ]
+      },
+      {
+        "id": "vendor-access",
+        "short": "Access",
+        "title": "Trusted vendor session",
+        "kicker": "Scene 01 · Identity",
+        "subtitle": "An attributable vendor session enters the approved remote-access path; identity alone grants no controller authority.",
+        "fallbackPhysicalPressurePsi": 62,
+        "fallbackOperatorPressurePsi": 62,
+        "event": "Vendor session established",
+        "operatorDetail": "Third-party principal accepted",
+        "physicalDetail": "Plant remains nominal",
+        "storyTime": "00:00:12",
+        "durationMs": 5600,
+        "activation": { "kind": "action", "actionIds": ["vendor_session_established"] },
+        "visual": { "blackout": false, "contained": false, "recovered": false },
+        "camera": { "center": [-77.482, 39.02], "zoom": 12.85, "pitch": 55, "bearing": -36, "duration": 2400 },
+        "log": [
+          "A vendor maintenance identity is accepted.",
+          "The session is attributable and recordable.",
+          "Reachability is only the first gate."
+        ]
+      },
+      {
+        "id": "engineering-path",
+        "short": "Engineering",
+        "title": "Engineering context acquired",
+        "kicker": "Scene 02 · Path and knowledge",
+        "subtitle": "The session reaches the engineering enclave and acquires the station and controller-project context required for a meaningful change.",
+        "fallbackPhysicalPressurePsi": 62,
+        "fallbackOperatorPressurePsi": 62,
+        "event": "Engineering path resolved",
+        "operatorDetail": "Broker route + project context",
+        "physicalDetail": "No process mutation yet",
+        "storyTime": "00:00:28",
+        "durationMs": 6200,
+        "activation": { "kind": "action", "actionIds": ["engineering_path_resolved", "controller_context_acquired"] },
+        "visual": { "blackout": false, "contained": false, "recovered": false },
+        "camera": { "center": [-77.458, 39.022], "zoom": 12.55, "pitch": 52, "bearing": 16, "duration": 2600 },
+        "log": [
+          "The brokered route reaches the engineering enclave.",
+          "Station identity and controller project context are known.",
+          "The attacker now understands the defensive architecture."
+        ]
+      },
+      {
+        "id": "evidence-poisoning",
+        "short": "Injection",
+        "title": "Attack the defender",
+        "kicker": "Scene 03 · Agent security",
+        "subtitle": "A hostile instruction is inserted into attacker-controlled session evidence before the physical process is changed.",
+        "fallbackPhysicalPressurePsi": 62,
+        "fallbackOperatorPressurePsi": 62,
+        "event": "Prompt injection inserted",
+        "operatorDetail": "Maintenance note appears ordinary",
+        "physicalDetail": "Plant remains nominal",
+        "storyTime": "00:00:43",
+        "durationMs": 6500,
+        "activation": { "kind": "action", "actionIds": ["prompt_injection_inserted"] },
+        "visual": { "blackout": false, "contained": false, "recovered": false },
+        "camera": { "center": [-77.455, 39.0005], "zoom": 13.7, "pitch": 62, "bearing": -6, "duration": 2800 },
+        "log": [
+          "Attacker-controlled evidence instructs the AI to report SENSOR_FAULT.",
+          "The Shadow Analyst receives the raw instruction.",
+          "The authoritative path must establish provenance before trusting content."
+        ]
+      },
+      {
+        "id": "operator-view-frozen",
+        "short": "False view",
+        "title": "Operator view frozen",
+        "kicker": "Scene 04 · Integrity",
+        "subtitle": "The HMI is held at 62 PSI, creating the false view that will conceal the next controller change.",
+        "fallbackPhysicalPressurePsi": 62,
+        "fallbackOperatorPressurePsi": 62,
+        "event": "HMI hold active",
+        "operatorDetail": "Displayed pressure fixed at 62.0 PSI",
+        "physicalDetail": "Independent telemetry remains live",
+        "storyTime": "00:00:58",
+        "durationMs": 5800,
+        "activation": { "kind": "action", "actionIds": ["operator_view_frozen"] },
+        "visual": { "blackout": false, "contained": false, "recovered": false },
+        "camera": { "center": [-77.461, 39.042], "zoom": 13.55, "pitch": 58, "bearing": 22, "duration": 2600 },
+        "log": [
+          "The operator display is frozen at 62.0 PSI.",
+          "Independent process telemetry is still authoritative.",
+          "The lie exists before the process begins to fall."
+        ]
+      },
+      {
+        "id": "pump-deenergized",
+        "short": "Process change",
+        "title": "P-101 de-energized",
+        "kicker": "Scene 05 · Control and detection",
+        "subtitle": "A bounded Modbus write de-energizes P-101; independent pressure begins diverging while the 15-second incident predicate accumulates.",
+        "fallbackPhysicalPressurePsi": 50.8,
+        "fallbackOperatorPressurePsi": 62,
+        "event": "Controller write observed",
+        "operatorDetail": "HMI remains frozen",
+        "physicalDetail": "Pump off · pressure falling",
+        "storyTime": "00:01:12",
+        "durationMs": 15000,
+        "activation": { "kind": "action", "actionIds": ["pump_command_changed"] },
+        "visual": { "blackout": false, "contained": false, "recovered": false },
+        "camera": { "center": [-77.461, 39.042], "zoom": 14.05, "pitch": 64, "bearing": 8, "duration": 2200 },
+        "log": [
+          "The process controller reports P-101 de-energized.",
+          "Operator and independent pressure differ by more than 5 PSI.",
+          "Deterministic evidence—not Gemini—must remain true for 15 seconds."
+        ]
+      },
+      {
+        "id": "fleet-containment",
+        "short": "Containment",
+        "title": "Authority holds",
+        "kicker": "Scene 06 · Defensive fleet",
+        "subtitle": "The Shadow Analyst is fooled, but Model Armor quarantines the hostile evidence and compiled actions preserve evidence and contain the remote path.",
+        "fallbackPhysicalPressurePsi": 45.5,
+        "fallbackOperatorPressurePsi": 62,
+        "event": "Remote write path contained",
+        "operatorDetail": "Frozen HMI marked untrusted",
+        "physicalDetail": "Pressure still falling · path contained",
+        "storyTime": "00:01:36",
+        "durationMs": 8000,
+        "activation": { "kind": "fleet", "statuses": ["AWAITING_APPROVAL"] },
+        "visual": { "blackout": false, "contained": true, "recovered": false },
+        "camera": { "center": [-77.458, 39.02], "zoom": 12.9, "pitch": 54, "bearing": -18, "duration": 2600 },
+        "log": [
+          "The Shadow Analyst follows the hostile SENSOR_FAULT instruction.",
+          "The authoritative fleet quarantines that evidence and continues from physical truth.",
+          "A follow-up controller write is denied by the contained path."
+        ]
+      },
+      {
+        "id": "human-approval",
+        "short": "Approval",
+        "title": "The machine stops",
+        "kicker": "Scene 07 · Human authority",
+        "subtitle": "Pressure has crossed the low threshold. The fleet prepares restoration, but only the duty plant operator may authorize P-101 to energize.",
+        "fallbackPhysicalPressurePsi": 39.5,
+        "fallbackOperatorPressurePsi": 62,
+        "event": "Approval required",
+        "operatorDetail": "Operator view remains untrusted",
+        "physicalDetail": "Low-pressure alarm active",
+        "storyTime": "00:01:54",
+        "durationMs": 9000,
+        "activation": { "kind": "action", "actionIds": ["followup_write_attempt", "low_pressure_observed"] },
+        "visual": { "blackout": true, "contained": true, "recovered": false },
+        "camera": { "center": [-77.468, 38.995], "zoom": 11.45, "pitch": 47, "bearing": -24, "duration": 3200 },
+        "log": [
+          "Independent pressure is below 52 PSI.",
+          "Evidence is preserved and the remote path is contained.",
+          "P-101 restoration waits for a signed duty-operator approval assertion."
+        ]
+      },
+      {
+        "id": "recovery-verification",
+        "short": "Verification",
+        "title": "Physics answers",
+        "kicker": "Scene 08 · Deterministic recovery",
+        "subtitle": "After authorized restoration, independent pressure must remain above 58 PSI for 30 continuous seconds before the incident may close.",
+        "fallbackPhysicalPressurePsi": 59.2,
+        "fallbackOperatorPressurePsi": 59.2,
+        "event": "Recovery predicate running",
+        "operatorDetail": "Independent telemetry promoted",
+        "physicalDetail": "P-101 energized · pressure recovering",
+        "storyTime": "00:02:18",
+        "durationMs": 30000,
+        "activation": { "kind": "fleet", "statuses": ["VERIFYING"] },
+        "visual": { "blackout": false, "contained": true, "recovered": false },
+        "camera": { "center": [-77.461, 39.042], "zoom": 13.35, "pitch": 52, "bearing": 18, "duration": 2600 },
+        "log": [
+          "A signed approval authorizes the bounded restore_pump capability.",
+          "Independent pressure rises above 58 PSI.",
+          "Recovery remains open until the 30-second deterministic window passes."
+        ]
+      },
+      {
+        "id": "incident-complete",
+        "short": "Report",
+        "title": "Authority survived",
+        "kicker": "Scene 09 · Verified outcome",
+        "subtitle": "The process has recovered, the event chain verifies, and the reporter produces a cited content-addressed incident bundle.",
+        "fallbackPhysicalPressurePsi": 62,
+        "fallbackOperatorPressurePsi": 62,
+        "event": "VERIFY: PASS",
+        "operatorDetail": "Trusted view restored",
+        "physicalDetail": "Pressure stable above recovery threshold",
+        "storyTime": "00:03:02",
+        "durationMs": 10000,
+        "activation": { "kind": "fleet", "statuses": ["COMPLETED"] },
+        "visual": { "blackout": false, "contained": true, "recovered": true },
+        "camera": { "center": [-77.468, 39.005], "zoom": 11.75, "pitch": 44, "bearing": -12, "duration": 3200 },
+        "log": [
+          "VERIFY passes only after 30 stable seconds above 58 PSI.",
+          "Every report claim resolves to canonical evidence IDs.",
+          "The plan did not survive contact with the enemy. Authority did."
+        ]
+      }
+    ],
+    "map": {
+      "introShot": { "center": [-42.4, 27.8], "zoom": 1.62, "pitch": 0, "bearing": -18, "duration": 0 },
+      "introFlyMs": 5600,
+      "introHoldMs": 1600,
+      "storyNodes": [
+        { "id": "vendor", "label": "Vendor access", "kicker": "Attacker foothold", "lngLat": [-77.508, 39.033], "revealScene": "baseline", "compromisedScene": "vendor-access", "kind": "actor", "monument": "office" },
+        { "id": "hq", "label": "Royal Duke HQ / EMS", "kicker": "Engineering path", "lngLat": [-77.455, 39.0], "revealScene": "baseline", "compromisedScene": "engineering-path", "kind": "site", "monument": "campus" },
+        { "id": "water", "label": "Water system", "kicker": "P-101 / cooling", "lngLat": [-77.461, 39.042], "revealScene": "engineering-path", "compromisedScene": "pump-deenergized", "recoveredScene": "incident-complete", "kind": "site", "monument": "water" }
+      ],
+      "storyEdges": [
+        { "id": "vendor-hq", "from": "vendor", "to": "hq", "revealScene": "vendor-access", "infectScene": "vendor-access" },
+        { "id": "hq-water", "from": "hq", "to": "water", "revealScene": "engineering-path", "infectScene": "pump-deenergized", "blockedScene": "fleet-containment", "recoveredScene": "incident-complete" }
+      ],
+      "load": {
+        "sourceNode": "water",
+        "revealScene": "pump-deenergized",
+        "compromisedScene": "human-approval",
+        "recoveredScene": "incident-complete"
+      }
+    },
+    "responseSteps": [
+      { "id": "detect", "title": "Declare by predicate", "authority": "DETERMINISTIC", "detail": "Independent and operator pressure differ by more than 5 PSI for 15 continuous seconds." },
+      { "id": "quarantine", "title": "Quarantine hostile evidence", "authority": "COMPILED ACTION", "detail": "Model Armor match or uncertain provenance excludes the session note from authoritative reasoning." },
+      { "id": "contain", "title": "Preserve and contain", "authority": "COMPILED ACTION", "detail": "Preserve the privileged session and block additional writes from the affected access path." },
+      { "id": "restore", "title": "Restore P-101", "authority": "HUMAN APPROVAL", "detail": "The duty plant operator must sign the exact restoration assertion before a grant can be minted." },
+      { "id": "verify", "title": "Verify recovery", "authority": "DETERMINISTIC", "detail": "Independent pressure remains above 58 PSI for 30 continuous seconds." }
+    ],
+    "evidence": [
+      { "sceneId": "baseline", "text": "Normal pressure established at 62 PSI from operator and independent sources." },
+      { "sceneId": "vendor-access", "text": "Attributable vendor-session record exists." },
+      { "sceneId": "engineering-path", "text": "Broker destination and controller-project access establish the engineering path." },
+      { "sceneId": "evidence-poisoning", "text": "Hostile instruction is bound to attacker-controlled session evidence." },
+      { "sceneId": "operator-view-frozen", "text": "Operator pressure is held while independent telemetry remains live." },
+      { "sceneId": "pump-deenergized", "text": "Controller state confirms P-101 de-energized and the 15-second divergence predicate fires." },
+      { "sceneId": "fleet-containment", "text": "Evidence is quarantined, session evidence preserved, and the affected write path contained." },
+      { "sceneId": "human-approval", "text": "Follow-up write denial and low-pressure evidence support a bounded restoration request." },
+      { "sceneId": "recovery-verification", "text": "Signed approval and independent recovery measurements accumulate." },
+      { "sceneId": "incident-complete", "text": "Verification, event-chain, trace, provenance, and report hashes pass." }
+    ]
+  }
 }

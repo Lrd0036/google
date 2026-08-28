@@ -1,6 +1,5 @@
-import { ALLEY_CENTER, isLabeledFacility, LOUDOUN_COUNT, LOUDOUN_FACILITIES } from './loudoun';
-
-export type StageId = 0 | 1 | 2 | 3 | 4 | 5;
+import rangeModelJson from '../../range/royal-duke/scenario.json';
+import { isLabeledFacility, LOUDOUN_FACILITIES } from './loudoun';
 
 export type CameraShot = {
   center: [number, number];
@@ -10,13 +9,125 @@ export type CameraShot = {
   duration: number;
 };
 
+export type ScenarioAction = {
+  id: string;
+  stage: number;
+  label: string;
+  plane: string;
+  prerequisites: string[];
+  effect: string;
+  evidence: string;
+  condition?: string;
+  requiredDefense?: string;
+};
+
+export type ScenarioScene = {
+  id: string;
+  short: string;
+  title: string;
+  kicker: string;
+  subtitle: string;
+  fallbackPhysicalPressurePsi: number;
+  fallbackOperatorPressurePsi: number;
+  event: string;
+  operatorDetail: string;
+  physicalDetail: string;
+  storyTime: string;
+  durationMs: number;
+  activation:
+    | { kind: 'baseline' }
+    | { kind: 'action'; actionIds: string[] }
+    | { kind: 'fleet'; statuses: string[] };
+  visual: { blackout: boolean; contained: boolean; recovered: boolean };
+  camera: CameraShot;
+  log: string[];
+};
+
+type StoryNodeConfig = {
+  id: string;
+  label: string;
+  kicker: string;
+  lngLat: [number, number];
+  revealScene: string;
+  compromisedScene: string;
+  recoveredScene?: string;
+  kind: 'actor' | 'site';
+  monument: 'office' | 'campus' | 'water';
+};
+
+type StoryEdgeConfig = {
+  id: string;
+  from: string;
+  to: string;
+  revealScene: string;
+  infectScene: string;
+  blockedScene?: string;
+  recoveredScene?: string;
+};
+
+type ExperienceModel = {
+  brand: {
+    kicker: string;
+    title: string;
+    thesis: string;
+    mastheadKicker: string;
+    mastheadTitle: string;
+    mapCredit: string;
+    titleSequence: { kicker: string; words: string[]; accentWord: string; subtitle: string; credit: string };
+  };
+  process: {
+    primaryAsset: string;
+    operatorTelemetryLabel: string;
+    independentTelemetryLabel: string;
+    pressureUnit: string;
+  };
+  thresholds: {
+    nominalPressurePsi: number;
+    incidentDeltaPsi: number;
+    incidentContinuousSeconds: number;
+    lowPressurePsi: number;
+    recoveryPressurePsi: number;
+    recoveryContinuousSeconds: number;
+  };
+  campaign: {
+    received: number;
+    routine: number;
+    decoys: number;
+    correlatedAnomalies: number;
+    causalEvents: number;
+    authoritativeFacts: number;
+  };
+  agents: Array<{ id: string; name: string; authority: string }>;
+  scenes: ScenarioScene[];
+  map: {
+    introShot: CameraShot;
+    introFlyMs: number;
+    introHoldMs: number;
+    storyNodes: StoryNodeConfig[];
+    storyEdges: StoryEdgeConfig[];
+    load: { sourceNode: string; revealScene: string; compromisedScene: string; recoveredScene?: string };
+  };
+  responseSteps: Array<{ id: string; title: string; authority: string; detail: string }>;
+  evidence: Array<{ sceneId: string; text: string }>;
+};
+
+type ScenarioModel = {
+  schemaVersion: string;
+  modelId: string;
+  title: string;
+  scope: string;
+  actions: ScenarioAction[];
+  experience: ExperienceModel;
+};
+
 export type SiteNode = {
   id: string;
   label: string;
   kicker: string;
   lngLat: [number, number];
-  reveal: StageId;
-  compromisedAt: StageId;
+  reveal: number;
+  compromisedAt: number;
+  recoveredAt?: number;
   kind: 'actor' | 'site' | 'load';
   monument: 'office' | 'campus' | 'water' | 'hall';
   labeled?: boolean;
@@ -26,98 +137,119 @@ export type SiteEdge = {
   id: string;
   from: string;
   to: string;
-  reveal: StageId;
-  infect?: StageId;
+  reveal: number;
+  infect: number;
+  blockedAt?: number;
+  recoveredAt?: number;
 };
 
-export const STAGES = [
-  {
-    short: 'Baseline',
-    title: 'Normal operations',
-    kicker: 'Chapter 00',
-    subtitle: 'Royal Duke keeps Data Center Alley alive from a room the public never sees.',
-    pressure: 62,
-    event: 'Nominal traffic',
-    operatorDetail: 'P-101 running · alarms none',
-    physicalDetail: 'Flow 11,480 GPM · pump on',
-    storyTime: '00:00:00',
-    duration: 5600,
-  },
-  {
-    short: 'Open Window',
-    title: 'The Open Window',
-    kicker: 'Chapter 01',
-    subtitle: 'A vendor session is treated as a trusted employee. It is not.',
-    pressure: 61.8,
-    event: 'Valid vendor session',
-    operatorDetail: 'Third-party identity accepted',
-    physicalDetail: 'Flow 11,470 GPM · pump on',
-    storyTime: '00:00:14',
-    duration: 6800,
-  },
-  {
-    short: 'The Pivot',
-    title: 'The Pivot',
-    kicker: 'Chapter 02',
-    subtitle: 'A session is not enough. The route, workstation, and controller project must all line up.',
-    pressure: 61.2,
-    event: 'Engineering path resolved',
-    operatorDetail: 'Station trust + asset model acquired',
-    physicalDetail: 'Flow 11,410 GPM · pump on',
-    storyTime: '00:00:31',
-    duration: 6800,
-  },
-  {
-    short: 'Illusion',
-    title: 'The Illusion',
-    kicker: 'Chapter 03',
-    subtitle: 'With view authority established, the operator screen can smile while the water does not.',
-    pressure: 37,
-    event: 'Values diverging',
-    operatorDetail: 'Displayed pressure 62.0 PSI',
-    physicalDetail: 'Independent telemetry 37.0 PSI',
-    storyTime: '00:00:48',
-    duration: 8400,
-  },
-  {
-    short: 'Physics',
-    title: 'The Physics Breach',
-    kicker: 'Chapter 04',
-    subtitle: 'Controller-write authority turns an approved data path into a process change.',
-    pressure: 27,
-    event: 'PLC write observed',
-    operatorDetail: 'HMI still reports running',
-    physicalDetail: 'Flow falling · pump commanded off',
-    storyTime: '00:01:02',
-    duration: 7400,
-  },
-  {
-    short: 'Fallout',
-    title: 'The Fallout',
-    kicker: 'Chapter 05',
-    subtitle: 'Cooling fails. The alley goes dark. The brainstem has bled out.',
-    pressure: 21,
-    event: 'Halls dropping offline',
-    operatorDetail: 'Emergency shutdown cascade',
-    physicalDetail: 'Thermal trip · Loudoun load at risk',
-    storyTime: '00:01:27',
-    duration: 9000,
-  },
-] as const;
+export type NarrativeRangeState = {
+  completedActions: string[];
+  defensive?: { remoteWritesContained?: boolean };
+  fleet?: null | { status?: string };
+};
 
-const STORY_NODES: SiteNode[] = [
-  { id: 'vendor', label: 'Vendor access', kicker: 'Initial access', lngLat: [-77.508, 39.033], reveal: 0, compromisedAt: 1, kind: 'actor', monument: 'office' },
-  { id: 'hq', label: 'Royal Duke HQ / EMS', kicker: 'The brainstem', lngLat: [-77.455, 39.0], reveal: 0, compromisedAt: 1, kind: 'site', monument: 'campus' },
-  { id: 'water', label: 'Water system', kicker: 'P-101 / cooling', lngLat: [-77.461, 39.042], reveal: 2, compromisedAt: 2, kind: 'site', monument: 'water' },
-];
+function assert(condition: unknown, message: string): asserts condition {
+  if (!condition) throw new Error(`Invalid Royal Duke scenario: ${message}`);
+}
+
+export const RANGE_MODEL = rangeModelJson as unknown as ScenarioModel;
+export const EXPERIENCE = RANGE_MODEL.experience;
+export const STAGES = EXPERIENCE.scenes;
+export const SHOTS = STAGES.map((scene) => scene.camera);
+export const INTRO_SHOT = EXPERIENCE.map.introShot;
+export const INTRO_FLY_MS = EXPERIENCE.map.introFlyMs;
+export const INTRO_HOLD_MS = EXPERIENCE.map.introHoldMs;
+export const THRESHOLDS = EXPERIENCE.thresholds;
+export const AGENTS = EXPERIENCE.agents;
+export const CAMPAIGN = EXPERIENCE.campaign;
+export const RESPONSE_STEPS = EXPERIENCE.responseSteps;
+
+const SCENE_INDEX = new Map(STAGES.map((scene, index) => [scene.id, index]));
+
+export function sceneIndex(sceneId: string) {
+  const index = SCENE_INDEX.get(sceneId);
+  assert(index !== undefined, `unknown scene ${sceneId}`);
+  return index;
+}
+
+export function validateScenarioModel() {
+  assert(RANGE_MODEL.modelId.length > 0, 'modelId is required');
+  assert(STAGES.length >= 2, 'at least two scenes are required');
+  assert(STAGES[0].activation.kind === 'baseline', 'first scene must be the baseline');
+
+  const actionIds = new Set<string>();
+  for (const action of RANGE_MODEL.actions) {
+    assert(!actionIds.has(action.id), `duplicate action ${action.id}`);
+    actionIds.add(action.id);
+    for (const prerequisite of action.prerequisites) {
+      assert(RANGE_MODEL.actions.some((candidate) => candidate.id === prerequisite), `${action.id} references unknown prerequisite ${prerequisite}`);
+    }
+  }
+
+  const sceneIds = new Set<string>();
+  const presentedActions = new Set<string>();
+  for (const scene of STAGES) {
+    assert(!sceneIds.has(scene.id), `duplicate scene ${scene.id}`);
+    sceneIds.add(scene.id);
+    assert(scene.log.length > 0, `scene ${scene.id} has no narrative evidence`);
+    assert(scene.durationMs > 0, `scene ${scene.id} has invalid duration`);
+    if (scene.activation.kind === 'action') {
+      for (const actionId of scene.activation.actionIds) {
+        assert(actionIds.has(actionId), `scene ${scene.id} references unknown action ${actionId}`);
+        presentedActions.add(actionId);
+      }
+    }
+  }
+  for (const actionId of actionIds) assert(presentedActions.has(actionId), `action ${actionId} has no presentation scene`);
+
+  for (const node of EXPERIENCE.map.storyNodes) {
+    assert(sceneIds.has(node.revealScene), `node ${node.id} has unknown reveal scene`);
+    assert(sceneIds.has(node.compromisedScene), `node ${node.id} has unknown compromise scene`);
+    if (node.recoveredScene) assert(sceneIds.has(node.recoveredScene), `node ${node.id} has unknown recovery scene`);
+  }
+  const mapNodeIds = new Set(EXPERIENCE.map.storyNodes.map((node) => node.id));
+  for (const edge of EXPERIENCE.map.storyEdges) {
+    assert(mapNodeIds.has(edge.from) && mapNodeIds.has(edge.to), `edge ${edge.id} references an unknown node`);
+    for (const id of [edge.revealScene, edge.infectScene, edge.blockedScene, edge.recoveredScene].filter(Boolean) as string[]) {
+      assert(sceneIds.has(id), `edge ${edge.id} references unknown scene ${id}`);
+    }
+  }
+  for (const evidence of EXPERIENCE.evidence) assert(sceneIds.has(evidence.sceneId), `evidence references unknown scene ${evidence.sceneId}`);
+
+  const lowPressure = RANGE_MODEL.actions.find((action) => action.id === 'low_pressure_observed');
+  assert(lowPressure?.condition === `process.pressure.psi < ${THRESHOLDS.lowPressurePsi}`, 'low-pressure action and presentation threshold disagree');
+  assert(THRESHOLDS.recoveryPressurePsi > THRESHOLDS.lowPressurePsi, 'recovery threshold must exceed low-pressure threshold');
+  assert(THRESHOLDS.nominalPressurePsi > THRESHOLDS.recoveryPressurePsi, 'nominal pressure must exceed recovery threshold');
+  return true;
+}
+
+validateScenarioModel();
+
+function at(sceneId: string) {
+  return sceneIndex(sceneId);
+}
+
+const STORY_NODES: SiteNode[] = EXPERIENCE.map.storyNodes.map((node) => ({
+  id: node.id,
+  label: node.label,
+  kicker: node.kicker,
+  lngLat: node.lngLat,
+  reveal: at(node.revealScene),
+  compromisedAt: at(node.compromisedScene),
+  recoveredAt: node.recoveredScene ? at(node.recoveredScene) : undefined,
+  kind: node.kind,
+  monument: node.monument,
+}));
 
 const LOAD_NODES: SiteNode[] = LOUDOUN_FACILITIES.map((site) => ({
   id: site.id,
   label: site.name,
   kicker: site.operator,
   lngLat: [site.lon, site.lat],
-  reveal: 0,
-  compromisedAt: 5,
+  reveal: at(EXPERIENCE.map.load.revealScene),
+  compromisedAt: at(EXPERIENCE.map.load.compromisedScene),
+  recoveredAt: EXPERIENCE.map.load.recoveredScene ? at(EXPERIENCE.map.load.recoveredScene) : undefined,
   kind: 'load',
   monument: 'hall',
   labeled: isLabeledFacility(site.id),
@@ -126,120 +258,54 @@ const LOAD_NODES: SiteNode[] = LOUDOUN_FACILITIES.map((site) => ({
 export const NODES: readonly SiteNode[] = [...STORY_NODES, ...LOAD_NODES];
 
 export const EDGES: SiteEdge[] = [
-  { id: 'vendor-hq', from: 'vendor', to: 'hq', reveal: 1 },
-  { id: 'hq-water', from: 'hq', to: 'water', reveal: 2 },
+  ...EXPERIENCE.map.storyEdges.map((edge) => ({
+    id: edge.id,
+    from: edge.from,
+    to: edge.to,
+    reveal: at(edge.revealScene),
+    infect: at(edge.infectScene),
+    blockedAt: edge.blockedScene ? at(edge.blockedScene) : undefined,
+    recoveredAt: edge.recoveredScene ? at(edge.recoveredScene) : undefined,
+  })),
   ...LOUDOUN_FACILITIES.map((site) => ({
     id: `water-${site.id}`,
-    from: 'water',
+    from: EXPERIENCE.map.load.sourceNode,
     to: site.id,
-    reveal: 4 as StageId,
-    infect: 5 as StageId,
+    reveal: at(EXPERIENCE.map.load.revealScene),
+    infect: at(EXPERIENCE.map.load.compromisedScene),
+    recoveredAt: EXPERIENCE.map.load.recoveredScene ? at(EXPERIENCE.map.load.recoveredScene) : undefined,
   })),
 ];
 
-export const LOG = [
-  [
-    'P-101 discharge holds at 62.0 PSI.',
-    'The alarm queue is empty.',
-    'Royal Duke is inside its design envelope.',
-  ],
-  [
-    'A third-party identity is accepted as valid.',
-    'Multi-factor authentication is not enforced.',
-    'The open window is now a corridor.',
-  ],
-  [
-    'The brokered session can reach the engineering enclave.',
-    'The controller project and station identity are known.',
-    'Only now is the live Modbus gateway meaningful.',
-  ],
-  [
-    'The operator screen still reads 62.0 PSI.',
-    'Independent telemetry reads 37.0 PSI.',
-    'The picture in the control room cannot be trusted.',
-  ],
-  [
-    'An allowlisted gateway update crosses live Modbus TCP.',
-    'The simulated PLC accepts the P-101 coil change.',
-    'Pressure falls through the minimum safe line.',
-  ],
-  [
-    'Campus cooling reserve is gone.',
-    'Thermal protection trips the halls.',
-    `${LOUDOUN_COUNT} Loudoun data centers start to fail.`,
-  ],
-] as const;
-
-export const DEFENSES = [
-  { id: 'mfa', title: 'Vendor MFA + just-in-time access', cost: 30, stage: 1 as StageId, brief: 'The session dies before it becomes a person.' },
-  { id: 'pam', title: 'Recorded privileged sessions', cost: 120, stage: 1 as StageId, brief: 'Every vendor keystroke is watched and timed out.' },
-  { id: 'segmentation', title: 'OT DMZ + security perimeter', cost: 180, stage: 2 as StageId, brief: 'The enterprise hop cannot see the plant.' },
-  { id: 'monitoring', title: 'Historian integrity monitoring', cost: 120, stage: 3 as StageId, brief: 'The lie on the glass is caught against the record.' },
-  { id: 'telemetry', title: 'Independent process telemetry', cost: 80, stage: 3 as StageId, brief: 'Physics gets a second witness.' },
-  { id: 'safety', title: 'PLC allow-listing + safety logic', cost: 90, stage: 4 as StageId, brief: 'A rogue write cannot move the process.' },
-] as const;
-
-export const EVIDENCE = [
-  { stage: 0 as StageId, text: 'Normal operating pressure established at 58–64 PSI.' },
-  { stage: 1 as StageId, text: 'Vendor identity has no enforced MFA or expiration.' },
-  { stage: 2 as StageId, text: 'The broker destination reaches the engineering enclave.' },
-  { stage: 2 as StageId, text: 'Controller project and station context were accessed.' },
-  { stage: 3 as StageId, text: 'Operator pressure diverges from physical telemetry.' },
-  { stage: 4 as StageId, text: 'Unauthorized PLC process change confirmed.' },
-  { stage: 5 as StageId, text: `Cooling loss propagates across ${LOUDOUN_COUNT} Loudoun data-center halls.` },
-] as const;
-
-export const INTRO_SHOT: CameraShot = {
-  center: [-42.4, 27.8],
-  zoom: 1.62,
-  pitch: 0,
-  bearing: -18,
-  duration: 0,
-};
-
-export const SHOTS: CameraShot[] = [
-  { center: [-77.468, 39.016], zoom: 12.05, pitch: 48, bearing: -20, duration: 2800 },
-  { center: [-77.482, 39.02], zoom: 12.85, pitch: 55, bearing: -36, duration: 2400 },
-  { center: [-77.458, 39.022], zoom: 12.55, pitch: 52, bearing: 16, duration: 2600 },
-  { center: [-77.455, 39.0005], zoom: 13.7, pitch: 62, bearing: -6, duration: 2800 },
-  { center: [-77.461, 39.042], zoom: 13.55, pitch: 58, bearing: 22, duration: 2600 },
-  { center: [ALLEY_CENTER[0], 38.995], zoom: 11.45, pitch: 47, bearing: -24, duration: 3400 },
-];
-
-export const INTRO_FLY_MS = 5600;
-export const INTRO_HOLD_MS = 1600;
-export const BUDGET_CAP = 500;
-
+export const EVIDENCE = EXPERIENCE.evidence.map((item) => ({ ...item, stage: at(item.sceneId) }));
 export const BY_ID = Object.fromEntries(NODES.map((node) => [node.id, node]));
 
-export function siteCompromised(
-  node: SiteNode,
-  stage: number,
-  contained: boolean,
-  blockStage: number,
-) {
+export function deriveSceneIndex(state: NarrativeRangeState | null) {
+  if (!state) return 0;
+  const completed = new Set(state.completedActions);
+  let active = 0;
+  STAGES.forEach((scene, index) => {
+    if (scene.activation.kind === 'action' && scene.activation.actionIds.some((id) => completed.has(id))) active = Math.max(active, index);
+    if (scene.activation.kind === 'fleet' && state.fleet?.status && scene.activation.statuses.includes(state.fleet.status)) active = Math.max(active, index);
+  });
+  if (state.defensive?.remoteWritesContained) active = Math.max(active, at('fleet-containment'));
+  return active;
+}
+
+export function siteCompromised(node: SiteNode, stage: number) {
   if (stage < node.compromisedAt) return false;
-  if (contained && node.compromisedAt >= blockStage) return false;
+  if (node.recoveredAt !== undefined && stage >= node.recoveredAt) return false;
   return true;
 }
 
-export function edgeInfected(
-  edge: SiteEdge,
-  stage: number,
-  contained: boolean,
-  blockStage: number,
-) {
-  const infect = edge.infect ?? edge.reveal;
-  if (stage < infect) return false;
-  if (contained && infect >= blockStage) return false;
+export function edgeInfected(edge: SiteEdge, stage: number) {
+  if (stage < edge.infect) return false;
+  if (edge.recoveredAt !== undefined && stage >= edge.recoveredAt) return false;
   return true;
 }
 
-export function edgeBlocked(
-  edge: SiteEdge,
-  stage: number,
-  contained: boolean,
-  blockStage: number,
-) {
-  return contained && stage >= blockStage && edge.reveal === blockStage;
+export function edgeBlocked(edge: SiteEdge, stage: number) {
+  if (edge.blockedAt === undefined || stage < edge.blockedAt) return false;
+  if (edge.recoveredAt !== undefined && stage >= edge.recoveredAt) return false;
+  return true;
 }
