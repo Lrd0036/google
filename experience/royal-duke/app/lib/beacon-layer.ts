@@ -1,6 +1,6 @@
 import { Map as MapLibreMap, MercatorCoordinate, type CustomLayerInterface, type CustomRenderMethodInput } from 'maplibre-gl';
 import * as THREE from 'three';
-import { NODES, siteCompromised, type SiteNode } from './scenario';
+import { NODES, siteCompromised, THRESHOLDS, type SiteNode } from './scenario';
 
 const EARTH_RADIUS = 6371008.8;
 const PAPER = 0xf3eee4;
@@ -17,8 +17,6 @@ type BeaconGroup = {
 
 export type BeaconState = {
   stage: number;
-  contained: boolean;
-  blockStage: number;
   pressure: number;
   reduced: boolean;
 };
@@ -101,7 +99,7 @@ export class BeaconLayer implements CustomLayerInterface {
   scene = new THREE.Scene();
   renderer: THREE.WebGLRenderer | null = null;
   beacons: BeaconGroup[] = [];
-  state: BeaconState = { stage: 0, contained: false, blockStage: Number.POSITIVE_INFINITY, pressure: 62, reduced: false };
+  state: BeaconState = { stage: 0, pressure: THRESHOLDS.nominalPressurePsi, reduced: false };
   time = 0;
 
   setState(next: BeaconState) {
@@ -158,21 +156,21 @@ export class BeaconLayer implements CustomLayerInterface {
       const zoomScale = 2 ** Math.max(0, 10.2 - Math.min(zoom, 10.2));
       const projection = args.defaultProjectionData as { mainMatrix: ArrayLike<number>; projectionTransition?: number };
       const isGlobe = (projection.projectionTransition ?? 0) > 0.5;
-      const { stage, contained, blockStage, pressure, reduced } = this.state;
+      const { stage, pressure, reduced } = this.state;
 
       for (const beacon of this.beacons) {
         const visible = stage >= beacon.node.reveal && zoom >= 5.8;
         beacon.root.visible = visible;
         if (!visible) continue;
-        const hot = siteCompromised(beacon.node, stage, contained, blockStage);
+        const hot = siteCompromised(beacon.node, stage);
         const color = hot ? BLOOD : PAPER;
         beacon.material.color.setHex(color);
         beacon.glowMaterial.color.setHex(color);
         const pulse = reduced ? 1 : 1 + Math.sin(this.time * 0.003 + beacon.node.lngLat[0]) * (hot ? 0.08 : 0.03);
         let height = pulse;
-        if (beacon.node.id === 'water') height *= Math.max(0.28, pressure / 62);
+        if (beacon.node.id === 'water') height *= Math.max(0.28, pressure / THRESHOLDS.nominalPressurePsi);
         if (beacon.node.kind === 'load') height *= 1.35;
-        if (stage >= 5 && beacon.node.kind === 'load' && !contained) {
+        if (beacon.node.kind === 'load' && hot) {
           beacon.material.opacity = 0.18;
           beacon.glowMaterial.opacity = 0.04;
         } else {

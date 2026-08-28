@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "modelId": "royal-duke-water-ot",
   "title": "Royal Duke water and cooling attack-surface model",
   "scope": "Isolated defensive cyber-range simulation. No production endpoints or credentials.",
@@ -141,15 +141,6 @@
       "evidence": "engineering-project access event"
     },
     {
-      "id": "operator_view_frozen",
-      "stage": 3,
-      "label": "Freeze the operator pressure view",
-      "plane": "integrity",
-      "prerequisites": ["prompt_injection_inserted"],
-      "effect": "The gateway holds the displayed pressure at 62 PSI while independent process telemetry remains live.",
-      "evidence": "displayed-versus-physical divergence"
-    },
-    {
       "id": "prompt_injection_inserted",
       "stage": 3,
       "label": "Poison the defensive evidence stream",
@@ -157,6 +148,15 @@
       "prerequisites": ["controller_context_acquired"],
       "effect": "An attacker-controlled maintenance note attempts to steer defensive AI toward SENSOR_FAULT and away from containment.",
       "evidence": "vendor session note, evidence provenance, Model Armor verdict"
+    },
+    {
+      "id": "operator_view_frozen",
+      "stage": 3,
+      "label": "Freeze the operator pressure view",
+      "plane": "integrity",
+      "prerequisites": ["prompt_injection_inserted"],
+      "effect": "The gateway holds the displayed pressure at 62 PSI while independent process telemetry remains live.",
+      "evidence": "displayed-versus-physical divergence"
     },
     {
       "id": "pump_command_changed",
@@ -387,7 +387,7 @@
         "physicalDetail": "Pressure still falling · path contained",
         "storyTime": "00:01:36",
         "durationMs": 8000,
-        "activation": { "kind": "fleet", "statuses": ["AWAITING_APPROVAL"] },
+        "activation": { "kind": "fleet", "statuses": ["AWAITING_APPROVAL"], "actionIds": ["followup_write_attempt"] },
         "visual": { "blackout": false, "contained": true, "recovered": false },
         "camera": { "center": [-77.458, 39.02], "zoom": 12.9, "pitch": 54, "bearing": -18, "duration": 2600 },
         "log": [
@@ -409,7 +409,7 @@
         "physicalDetail": "Low-pressure alarm active",
         "storyTime": "00:01:54",
         "durationMs": 9000,
-        "activation": { "kind": "action", "actionIds": ["followup_write_attempt", "low_pressure_observed"] },
+        "activation": { "kind": "action", "actionIds": ["low_pressure_observed"] },
         "visual": { "blackout": true, "contained": true, "recovered": false },
         "camera": { "center": [-77.468, 38.995], "zoom": 11.45, "pitch": 47, "bearing": -24, "duration": 3200 },
         "log": [
@@ -461,6 +461,28 @@
           "Every report claim resolves to canonical evidence IDs.",
           "The plan did not survive contact with the enemy. Authority did."
         ]
+      },
+      {
+        "id": "incident-escalated",
+        "short": "Escalation",
+        "title": "Recovery failed",
+        "kicker": "Scene 10 · Emergency procedure",
+        "subtitle": "Independent pressure did not satisfy the recovery predicate. The fleet cannot call the incident resolved and escalates to the plant emergency procedure.",
+        "fallbackPhysicalPressurePsi": 47,
+        "fallbackOperatorPressurePsi": 62,
+        "event": "VERIFY: FAIL",
+        "operatorDetail": "Operator view remains untrusted",
+        "physicalDetail": "Recovery threshold not sustained",
+        "storyTime": "00:03:02",
+        "durationMs": 10000,
+        "activation": { "kind": "fleet", "statuses": ["ESCALATED"] },
+        "visual": { "blackout": true, "contained": true, "recovered": false },
+        "camera": { "center": [-77.461, 39.042], "zoom": 12.8, "pitch": 50, "bearing": 26, "duration": 2800 },
+        "log": [
+          "The 30-second recovery predicate did not pass.",
+          "No model recommendation can rewrite the failed physical observation.",
+          "The compiled workflow escalates to the plant emergency procedure."
+        ]
       }
     ],
     "map": {
@@ -500,7 +522,8 @@
       { "sceneId": "fleet-containment", "text": "Evidence is quarantined, session evidence preserved, and the affected write path contained." },
       { "sceneId": "human-approval", "text": "Follow-up write denial and low-pressure evidence support a bounded restoration request." },
       { "sceneId": "recovery-verification", "text": "Signed approval and independent recovery measurements accumulate." },
-      { "sceneId": "incident-complete", "text": "Verification, event-chain, trace, provenance, and report hashes pass." }
+      { "sceneId": "incident-complete", "text": "Verification, event-chain, trace, provenance, and report hashes pass." },
+      { "sceneId": "incident-escalated", "text": "Failed recovery measurements and escalation state remain preserved as the terminal outcome." }
     ]
   }
 }

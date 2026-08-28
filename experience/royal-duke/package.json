@@ -24,6 +24,7 @@
   "scripts": {
     "dev": "vinext dev",
     "build": "vinext build",
+    "test": "node --test tests/*.test.mjs",
     "start": "vinext start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "range:up": "docker compose -f range/royal-duke/docker-compose.yml up -d",

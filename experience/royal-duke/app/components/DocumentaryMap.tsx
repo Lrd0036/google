@@ -13,13 +13,12 @@ import {
   INTRO_SHOT,
   NODES,
   SHOTS,
+  STAGES,
   siteCompromised,
 } from '../lib/scenario';
 
 type Props = {
   stage: number;
-  contained: boolean;
-  blockStage: number;
   pressure: number;
   intro: boolean;
   reduced: boolean;
@@ -28,8 +27,6 @@ type Props = {
 
 export default function DocumentaryMap({
   stage,
-  contained,
-  blockStage,
   pressure,
   intro,
   reduced,
@@ -47,14 +44,14 @@ export default function DocumentaryMap({
   const introFinished = useRef(false);
   const arrivedFromIntro = useRef(false);
   const lastTick = useRef(0);
-  const simRef = useRef({ stage, contained, blockStage, pressure, reduced });
+  const simRef = useRef({ stage, pressure, reduced });
 
   useEffect(() => {
     introRef.current = intro;
     onIntroCompleteRef.current = onIntroComplete;
-    simRef.current = { stage, contained, blockStage, pressure, reduced };
+    simRef.current = { stage, pressure, reduced };
     beaconsRef.current?.setState(simRef.current);
-  }, [stage, contained, blockStage, pressure, reduced, intro, onIntroComplete]);
+  }, [stage, pressure, reduced, intro, onIntroComplete]);
 
   useEffect(() => {
     if (!mapEl.current || mapRef.current) return;
@@ -76,7 +73,7 @@ export default function DocumentaryMap({
     const nervous = new NervousSystem();
     nervousRef.current = nervous;
     const beacons = new BeaconLayer();
-    beacons.setState({ stage, contained, blockStage, pressure, reduced });
+    beacons.setState({ stage, pressure, reduced });
     beaconsRef.current = beacons;
 
     const resizeFx = () => {
@@ -108,7 +105,7 @@ export default function DocumentaryMap({
         }
         const p = map.project(node.lngLat);
         el.dataset.hide = 'false';
-        el.dataset.hot = siteCompromised(node, sim.stage, sim.contained, sim.blockStage) ? 'true' : 'false';
+        el.dataset.hot = siteCompromised(node, sim.stage) ? 'true' : 'false';
         el.style.transform = `translate(${p.x + 18}px, ${p.y - 14}px)`;
       }
     };
@@ -257,11 +254,11 @@ export default function DocumentaryMap({
     const map = mapRef.current;
     if (!map?.getLayer('satellite')) return;
     try {
-      map.setPaintProperty('satellite', 'raster-brightness-max', stage >= 5 && !contained ? 0.48 : 0.94);
+      map.setPaintProperty('satellite', 'raster-brightness-max', STAGES[stage].visual.blackout ? 0.48 : 0.94);
     } catch {
       /* style may still be loading */
     }
-  }, [stage, contained]);
+  }, [stage]);
 
   return (
     <div className="world" ref={rootRef}>

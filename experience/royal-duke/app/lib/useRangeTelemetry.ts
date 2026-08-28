@@ -20,7 +20,7 @@ export type RangeState = {
     status: string;
     updated_at?: string;
     trace_id?: string;
-    campaign?: { received: 214; routine: 147; decoys: 39; correlated_anomalies: 17; causal_events: 7; authoritative_facts: 4 };
+    campaign?: { received: number; routine: number; decoys: number; correlated_anomalies: number; causal_events: number; authoritative_facts: number };
     facts?: Array<{ fact_id: string; label: string; status: 'PENDING' | 'PROVEN'; evidence_ids: string[] }>;
     activities?: Array<{ activity_id: string; agent_name: string; status: string; summary: string; decision?: string; evidence_ids: string[] }>;
     divergence_elapsed_seconds?: number;
@@ -38,7 +38,7 @@ export type RangeState = {
       report_sha256: string;
       event_chain_valid: boolean;
       event_ids: string[];
-      verification: { outcome: string; threshold_psi: 58; stable_seconds: 30 };
+      verification: { outcome: string; threshold_psi: number; stable_seconds: number };
       limitations: string[];
     };
     error?: string;
@@ -100,7 +100,11 @@ export function useRangeTelemetry() {
       if (!endpoint) return;
       setError('');
       try {
-        const response = await fetch(`${endpoint}${path}`, { method: 'POST', signal: AbortSignal.timeout(4000) });
+        // Starting an exercise may include managed-agent, Model Armor, and
+        // provenance calls. A short UI timeout can report failure after the
+        // controller has already committed the action, which makes the map
+        // appear to disagree with canonical range state.
+        const response = await fetch(`${endpoint}${path}`, { method: 'POST', signal: AbortSignal.timeout(120_000) });
         const body = (await response.json()) as RangeState & { error?: string };
         if (!response.ok) throw new Error(body.error ?? `Range controller returned ${response.status}.`);
         setState(body);

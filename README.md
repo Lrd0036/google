@@ -114,6 +114,13 @@ The demo proves this chain:
   → content-addressed incident bundle
 ```
 
+The attack controller and map no longer maintain parallel scripts. The
+canonical [`scenario.json`](./experience/royal-duke/range/royal-duke/scenario.json)
+drives the eight attack actions and the eleven-scene presentation, including map
+topology, camera shots, thresholds, agent labels, authority boundaries, and
+evidence copy. Live action and fleet state select the scene; OT-sim remains the
+source of physical truth.
+
 The institutional provenance panel does not render configuration as proof. It
 reads Agent Registry records, distinct Agent Identity principals, Agent Runtime
 revisions, the admitted Memory Bank item, Gateway and authorization policy

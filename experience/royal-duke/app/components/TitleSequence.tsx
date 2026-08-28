@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef } from 'react';
 import gsap from 'gsap';
+import { EXPERIENCE } from '../lib/scenario';
 
 type Props = {
   visible: boolean;
@@ -28,24 +29,17 @@ export default function TitleSequence({ visible, onSkip }: Props) {
 
   return (
     <div className="title-seq" ref={root}>
-      <p className="ts-kicker">Auburn AIS presents</p>
+      <p className="ts-kicker">{EXPERIENCE.brand.titleSequence.kicker}</p>
       <h1>
-        <span className="ts-clip">
-          <span className="ts-word">When</span>
-        </span>{' '}
-        <span className="ts-clip">
-          <span className="ts-word">the</span>
-        </span>{' '}
-        <span className="ts-clip">
-          <span className="ts-word">Brainstem</span>
-        </span>{' '}
-        <span className="ts-clip">
-          <span className="ts-word is-bleed">Bleeds</span>
-        </span>
+        {EXPERIENCE.brand.titleSequence.words.map((word) => (
+          <span className="ts-clip" key={word}>
+            <span className={`ts-word${word === EXPERIENCE.brand.titleSequence.accentWord ? ' is-bleed' : ''}`}>{word}</span>{' '}
+          </span>
+        ))}
       </h1>
       <i className="ts-rule" />
-      <p className="ts-sub">The Royal Duke incident, reconstructed from the control room to Data Center Alley.</p>
-      <p className="ts-credit">Imagery: Esri, Maxar, Earthstar Geographics. Loudoun halls are public map centroids. Royal Duke sites are a scenario overlay.</p>
+      <p className="ts-sub">{EXPERIENCE.brand.titleSequence.subtitle}</p>
+      <p className="ts-credit">{EXPERIENCE.brand.titleSequence.credit}</p>
       <button type="button" className="ts-skip" onClick={onSkip}>
         Skip
       </button>

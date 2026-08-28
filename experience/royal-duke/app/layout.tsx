@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Share_Tech_Mono } from 'next/font/google';
+import scenario from '../range/royal-duke/scenario.json';
 import './globals.css';
 
 const terminal = Share_Tech_Mono({
@@ -10,17 +11,18 @@ const terminal = Share_Tech_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://royal-duke-cyber-range.lrd01.chatgpt.site'),
-  title: 'Royal Duke Cyber Range | Auburn AIS',
-  description: 'An interactive cyber-physical mission showing how enterprise compromise can propagate into industrial operations.',
+  title: `${scenario.experience.brand.title} | Auburn AIS`,
+  description: scenario.experience.brand.thesis,
+  icons: { icon: '/favicon.svg' },
   openGraph: {
-    title: 'Royal Duke Cyber Range',
-    description: 'When the Brainstem Bleeds.',
-    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Royal Duke Cyber Range — When the Brainstem Bleeds' }],
+    title: scenario.experience.brand.title,
+    description: scenario.experience.brand.thesis,
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: scenario.experience.brand.title }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Royal Duke Cyber Range',
-    description: 'When the Brainstem Bleeds.',
+    title: scenario.experience.brand.title,
+    description: scenario.experience.brand.thesis,
     images: ['/og.png'],
   },
 };

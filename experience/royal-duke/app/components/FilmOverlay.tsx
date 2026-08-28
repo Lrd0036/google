@@ -3,19 +3,13 @@
 import { useLayoutEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { useAnimatedNumber } from '../lib/motion';
-import { STAGES } from '../lib/scenario';
+import { EXPERIENCE, STAGES, THRESHOLDS } from '../lib/scenario';
 
 type Props = {
   stage: number;
   playing: boolean;
-  spend: number;
-  contained: boolean;
-  blockStage: number;
   operatorPressure: number;
   physicalPressure: number;
-  event: string;
-  operatorDetail: string;
-  physicalDetail: string;
   log: readonly string[];
   onPlay: () => void;
   onReset: () => void;
@@ -28,14 +22,8 @@ type Props = {
 export default function FilmOverlay({
   stage,
   playing,
-  spend,
-  contained,
-  blockStage,
   operatorPressure,
   physicalPressure,
-  event,
-  operatorDetail,
-  physicalDetail,
   log,
   onPlay,
   onReset,
@@ -66,8 +54,8 @@ export default function FilmOverlay({
     <div className="overlay">
       <header className="overlay-top">
         <div className="masthead">
-          <p>Auburn AIS · Cyber Range</p>
-          <strong>Royal Duke</strong>
+          <p>{EXPERIENCE.brand.mastheadKicker}</p>
+          <strong>{EXPERIENCE.brand.mastheadTitle}</strong>
         </div>
         <div className="mast-actions">
           <div className="clock">
@@ -76,25 +64,19 @@ export default function FilmOverlay({
           </div>
           <div className="mast-links">
             <button type="button" className="text-btn" onClick={onInspect}>Attack surface</button>
-            <button type="button" className="text-btn" onClick={onDefend}>
-              Defend · {(spend * 1000).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}
-            </button>
+            <button type="button" className="text-btn" onClick={onDefend}>Runbook &amp; authority</button>
           </div>
         </div>
-        <p className="mast-credit">Loudoun data centers: public OSM centroids. Royal Duke HQ, water, and vendor sites are a scenario overlay.</p>
+        <p className="mast-credit">{EXPERIENCE.brand.mapCredit}</p>
       </header>
 
       <div className="chapter" ref={titleRef}>
-        <p className="chapter-kicker">{contained ? 'The chain breaks' : current.kicker}</p>
+        <p className="chapter-kicker">{current.kicker}</p>
         <div className="chapter-clip">
-          <h1 className="chapter-title">{contained ? 'Held' : current.title}</h1>
+          <h1 className="chapter-title">{current.title}</h1>
         </div>
         <i className="chapter-rule" />
-        <p className="chapter-sub">
-          {contained
-            ? `A control at chapter ${String(blockStage).padStart(2, '0')} stops the write from becoming physics.`
-            : current.subtitle}
-        </p>
+        <p className="chapter-sub">{current.subtitle}</p>
       </div>
 
       <aside className="wire">
@@ -104,21 +86,21 @@ export default function FilmOverlay({
       </aside>
 
       <div className="overlay-floor">
-        <section className={`lower-third${deceptive ? ' is-split' : ''}${contained ? ' is-held' : ''}`}>
+        <section className={`lower-third${deceptive ? ' is-split' : ''}${current.visual.contained ? ' is-held' : ''}`}>
           <div>
             <span>Operator view</span>
-            <strong>{op.toFixed(1)} PSI</strong>
-            <small>{contained ? 'Display matches the plant' : operatorDetail}</small>
+            <strong>{op.toFixed(1)} {EXPERIENCE.process.pressureUnit}</strong>
+            <small>{current.operatorDetail}</small>
           </div>
           <div>
-            <span>Network</span>
-            <strong>{contained ? 'Control holds' : event}</strong>
-            <small>{contained ? `Stopped at chapter ${String(blockStage).padStart(2, '0')}` : current.subtitle}</small>
+            <span>Incident state</span>
+            <strong>{current.event}</strong>
+            <small>{current.visual.contained ? 'Compiled authority plane engaged' : current.subtitle}</small>
           </div>
-          <div className={physicalPressure < 52 && !contained ? 'is-alert' : ''}>
+          <div className={physicalPressure < THRESHOLDS.lowPressurePsi && !current.visual.recovered ? 'is-alert' : ''}>
             <span>Physical truth</span>
-            <strong>{phys.toFixed(1)} PSI</strong>
-            <small>{contained ? 'Process remains inside 58–64 PSI' : physicalDetail}</small>
+            <strong>{phys.toFixed(1)} {EXPERIENCE.process.pressureUnit}</strong>
+            <small>{current.physicalDetail}</small>
           </div>
         </section>
 
@@ -144,7 +126,7 @@ export default function FilmOverlay({
             {playing ? 'Pause' : 'Play briefing'}
           </button>
           <button type="button" onClick={onAdvance}>
-            {stage === 5 ? 'Hold on fallout' : 'Advance'}
+            {current.activation.statuses?.some((status) => status === 'COMPLETED' || status === 'ESCALATED') ? 'Hold on outcome' : 'Advance'}
           </button>
         </div>
       </div>

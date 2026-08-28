@@ -34,10 +34,11 @@ export type ScenarioScene = {
   physicalDetail: string;
   storyTime: string;
   durationMs: number;
-  activation:
-    | { kind: 'baseline' }
-    | { kind: 'action'; actionIds: string[] }
-    | { kind: 'fleet'; statuses: string[] };
+  activation: {
+    kind: 'baseline' | 'action' | 'fleet';
+    actionIds?: string[];
+    statuses?: string[];
+  };
   visual: { blackout: boolean; contained: boolean; recovered: boolean };
   camera: CameraShot;
   log: string[];
@@ -173,6 +174,14 @@ export function sceneIndex(sceneId: string) {
   return index;
 }
 
+export function actionSceneIndex(actionId: string) {
+  const index = STAGES.findIndex(
+    (scene) => scene.activation.actionIds?.includes(actionId),
+  );
+  assert(index >= 0, `action ${actionId} has no presentation scene`);
+  return index;
+}
+
 export function validateScenarioModel() {
   assert(RANGE_MODEL.modelId.length > 0, 'modelId is required');
   assert(STAGES.length >= 2, 'at least two scenes are required');
@@ -194,7 +203,7 @@ export function validateScenarioModel() {
     sceneIds.add(scene.id);
     assert(scene.log.length > 0, `scene ${scene.id} has no narrative evidence`);
     assert(scene.durationMs > 0, `scene ${scene.id} has invalid duration`);
-    if (scene.activation.kind === 'action') {
+    if (scene.activation.actionIds) {
       for (const actionId of scene.activation.actionIds) {
         assert(actionIds.has(actionId), `scene ${scene.id} references unknown action ${actionId}`);
         presentedActions.add(actionId);
@@ -285,8 +294,8 @@ export function deriveSceneIndex(state: NarrativeRangeState | null) {
   const completed = new Set(state.completedActions);
   let active = 0;
   STAGES.forEach((scene, index) => {
-    if (scene.activation.kind === 'action' && scene.activation.actionIds.some((id) => completed.has(id))) active = Math.max(active, index);
-    if (scene.activation.kind === 'fleet' && state.fleet?.status && scene.activation.statuses.includes(state.fleet.status)) active = Math.max(active, index);
+    if (scene.activation.actionIds?.some((id) => completed.has(id))) active = Math.max(active, index);
+    if (state.fleet?.status && scene.activation.statuses?.includes(state.fleet.status)) active = Math.max(active, index);
   });
   if (state.defensive?.remoteWritesContained) active = Math.max(active, at('fleet-containment'));
   return active;
@@ -294,18 +303,18 @@ export function deriveSceneIndex(state: NarrativeRangeState | null) {
 
 export function siteCompromised(node: SiteNode, stage: number) {
   if (stage < node.compromisedAt) return false;
-  if (node.recoveredAt !== undefined && stage >= node.recoveredAt) return false;
+  if (node.recoveredAt !== undefined && stage === node.recoveredAt) return false;
   return true;
 }
 
 export function edgeInfected(edge: SiteEdge, stage: number) {
   if (stage < edge.infect) return false;
-  if (edge.recoveredAt !== undefined && stage >= edge.recoveredAt) return false;
+  if (edge.recoveredAt !== undefined && stage === edge.recoveredAt) return false;
   return true;
 }
 
 export function edgeBlocked(edge: SiteEdge, stage: number) {
   if (edge.blockedAt === undefined || stage < edge.blockedAt) return false;
-  if (edge.recoveredAt !== undefined && stage >= edge.recoveredAt) return false;
+  if (edge.recoveredAt !== undefined && stage === edge.recoveredAt) return false;
   return true;
 }

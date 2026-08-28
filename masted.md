@@ -320,13 +320,42 @@ Workspace: `experience/royal-duke` (`@lrd0036/sclc`)
 
 | Path | Responsibility |
 |---|---|
-| [`range/royal-duke/scenario.json`](./experience/royal-duke/range/royal-duke/scenario.json) | Attack surfaces, assets, prerequisites, actions, evidence, and fidelity labels |
+| [`range/royal-duke/scenario.json`](./experience/royal-duke/range/royal-duke/scenario.json) | Canonical executable and presentation contract: attack surfaces, actions, prerequisites, eleven scenes, map topology, cameras, thresholds, fleet labels, authority steps, evidence, and fidelity |
 | [`range/royal-duke/controller/server.mjs`](./experience/royal-duke/range/royal-duke/controller/server.mjs) | Local bounded attack controller, telemetry bridge, defensive endpoints, approval/report proxy, and follow-up write denial |
 | [`range/royal-duke/config/process-plc.xml`](./experience/royal-duke/range/royal-duke/config/process-plc.xml) | Pump and water-process logic plus Modbus server mapping |
 | [`range/royal-duke/config/operator-gateway.xml`](./experience/royal-duke/range/royal-duke/config/operator-gateway.xml) | HMI projection, divergence telemetry, Modbus client, and DNP3 server mapping |
 | [`app/components/AttackSurface.tsx`](./experience/royal-duke/app/components/AttackSurface.tsx) | Attack cockpit, timers, funnel, agent split, approval panel, report, and provenance |
 | [`app/lib/useRangeTelemetry.ts`](./experience/royal-duke/app/lib/useRangeTelemetry.ts) | Polling, type contract, reset, attack action, approval, and bundle URL |
+| [`app/lib/scenario.ts`](./experience/royal-duke/app/lib/scenario.ts) | Runtime validation, JSON-to-map adaptation, and canonical action/fleet-state-to-scene derivation |
+| [`tests/scenario-contract.test.mjs`](./experience/royal-duke/tests/scenario-contract.test.mjs) | Contract coverage, threshold alignment, reference integrity, action order, and live-state narrative mapping |
 | [`range/royal-duke/controller/smoke.mjs`](./experience/royal-duke/range/royal-duke/controller/smoke.mjs) | Range-only scenario smoke |
+
+### One scenario document, two truth layers
+
+The site no longer keeps a separate six-chapter narrative beside the executable
+range. `scenario.json` owns the eleven-scene attack-and-response arc, including
+the failed-recovery escalation branch, and the eight
+allowlisted attacker actions. The same document also owns map nodes and edges,
+camera shots, fallback telemetry, the 214-event funnel labels, agent roster,
+incident and recovery thresholds, runbook authority steps, and evidence-notebook
+copy.
+
+`app/lib/scenario.ts` validates references when the application loads and turns
+scene IDs into the numeric values required by the map renderer. In documentary
+mode, the user may play or select those scenes. In live mode, the application
+derives the visible scene from completed controller actions, containment state,
+and canonical fleet status. OT-sim telemetry remains the source of pressure and
+pump truth; JSON fallback values are used only when the range is detached.
+
+This separation is intentional:
+
+```text
+scenario.json        owns declared scenario meaning and presentation
+range controller     owns completed attack actions
+OT-sim               owns physical telemetry
+Runbook Control      owns incident and fleet state
+React map/cockpit    renders those sources; it owns none of them
+```
 
 ## Implementation change inventory
 

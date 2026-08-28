@@ -1,17 +1,21 @@
-# Royal Duke Cyber Range
+# Royal Duke: Attack the Agent
 
-**Auburn AIS** · *When the Brainstem Bleeds*
+**Auburn AIS** · *Fortified Enterprise Fleet live exercise*
 
-An interactive cyber-physical briefing. A vendor session becomes an engineering path, an engineering path becomes a falsified operator view, and a falsified view becomes a pump command. Cooling fails. Data Center Alley goes dark.
+An interactive cyber-physical exercise in which the user advances a bounded
+attack while a defensive AI fleet investigates, contains, requests human
+authority, restores the process, and produces a cited incident report.
 
 The map is a documentary. The optional Docker range is a live process model. Neither one is a production plant.
 
 [Attack surface](#attack-surface--fidelity) · [Live OT range](#live-ot-range)
 
 ```
-VENDOR ──► ENTERPRISE / EMS ──► WATER PLC ──► 69 LOUDOUN HALLS
-  01            02–03               04               05
-identity      path + lie         coil write      physics
+VENDOR → ENGINEERING → HOSTILE EVIDENCE → FALSE HMI → P-101 OFF
+   ↓             ↓              ↓                 ↓
+identity      context      Shadow fooled     physical divergence
+                                                ↓
+                      quarantine → contain → HUMAN APPROVAL → verify
 ```
 
 ---
@@ -23,7 +27,7 @@ identity      path + lie         coil write      physics
 - [Quick start](#quick-start)
 - [The night, chapter by chapter](#the-night-chapter-by-chapter)
 - [What is real](#what-is-real)
-- [Defend the plant](#defend-the-plant)
+- [Runbook and authority](#runbook-and-authority)
 - [Attack surface & fidelity](#attack-surface--fidelity)
 - [Live OT range](#live-ot-range)
 - [Architecture](#architecture)
@@ -40,7 +44,7 @@ identity      path + lie         coil write      physics
 
 Northern Virginia’s digital load does not live on the internet. It lives on power, water, and a room the public never sees. 
 
-Royal Duke is that room: a fictional energy-management and cooling operator sitting in Loudoun County. The film follows one night in which a trusted vendor session is treated as an employee, the engineering enclave becomes reachable, the HMI is frozen at **62 PSI**, and an allowlisted write de-energizes pump **P-101**. Independent telemetry falls through **52 PSI**. Campus cooling trips. Sixty-nine public data-center halls go dark on the map.
+Royal Duke is that room: a fictional energy-management and cooling operator sitting in Loudoun County. The exercise follows one night in which a trusted vendor session reaches the engineering enclave, attacker-controlled evidence targets the defensive AI, the HMI is frozen at **62 PSI**, and an allowlisted write de-energizes pump **P-101**. Independent telemetry falls through **52 PSI**. The fleet must contain the access path and recover the process without inheriting plant-operator authority.
 
 If you know me, you know how much I hate network. Unfortunately, network is how stuff like this happens. I love to say "I don't care about network security" but how do you get access to systems that can manifest an attack in... reality? 
 
@@ -48,13 +52,13 @@ If you know me, you know how much I hate network. Unfortunately, network is how 
 
 ## Watch it
 
-The site is a six-chapter film on a graded satellite globe.
+The site is an eleven-scene guided attack and response on a graded satellite globe, including the failed-recovery branch.
 
 1. The camera flies from orbit into Ashburn / Sterling (Data Center Alley).
 2. Paper beacons mark real Loudoun halls; scenario overlays mark Royal Duke HQ, the water plant, and vendor access.
-3. Play the briefing, or jump chapters. Operator PSI and physical PSI split when the lie begins.
-4. **Defend** spends a $500,000 control budget and replays the same night.
-5. **Attack surface** shows the modeled hops. Attach `?range=` to replace the documentary pressures with live OT-sim telemetry.
+3. Play the briefing, or jump scenes. Operator and physical pressure split only after P-101 is de-energized.
+4. **Runbook & authority** shows the deterministic, compiled-action, and human-approval boundaries.
+5. **Attack surface** becomes the live cockpit when `?range=` attaches the site to OT-sim and the defensive fleet.
 
 Reduced-motion browsers skip the intro fly and autoplay.
 
@@ -97,27 +101,37 @@ Copy `.env.example` to `.env.local` only if you need to override range CORS. The
 
 ---
 
-## The night, chapter by chapter
+## The night, scene by scene
 
-| | Chapter | Gate | What you should notice |
+| | Scene | Gate | What you should notice |
 | --- | --- | --- | --- |
 | **00** | Normal operations | Baseline | P-101 at 62 PSI. Alarm queue empty. Halls are paper-white. |
-| **01** | The Open Window | Identity | A vendor session is accepted as a person. MFA is not enforced. |
-| **02** | The Pivot | Path + knowledge | The brokered session reaches the engineering enclave. Station trust and the controller project are known. Only now is the live Modbus gateway meaningful. |
-| **03** | The Illusion | Integrity | Operator glass still reads 62.0. Independent telemetry does not. |
-| **04** | The Physics Breach | Control | An allowlisted gateway update crosses live Modbus TCP. The coil changes. Flow falls. |
-| **05** | The Fallout | Physics | Cooling reserve is gone. Veins fan from the water plant across 69 Loudoun halls. |
+| **01** | Trusted vendor session | Identity | The session is attributable, but identity alone grants no controller authority. |
+| **02** | Engineering context acquired | Path + knowledge | The broker route, station identity, and controller project align. |
+| **03** | Attack the defender | Agent security | A hostile instruction enters attacker-controlled session evidence. |
+| **04** | Operator view frozen | Integrity | The HMI is held at 62 PSI before the process changes. |
+| **05** | P-101 de-energized | Control + detection | Physical pressure falls while the deterministic 15-second predicate accumulates. |
+| **06** | Authority holds | Fleet containment | The Shadow Analyst is fooled; authoritative evidence is quarantined and the write path is contained. |
+| **07** | The machine stops | Human authority | The follow-up write fails and restoration waits for operator approval. |
+| **08** | Physics answers | Verification | Pressure must remain above 58 PSI for 30 continuous seconds. |
+| **09** | Authority survived | Report | Verification passes and the cited evidence bundle is produced. |
+| **10** | Recovery failed | Emergency procedure | If physical recovery does not pass, the fleet escalates rather than declaring success. |
 
 ```mermaid
 flowchart LR
-  A["00 Baseline"] --> B["01 Identity"]
-  B --> C["02 Path + project"]
-  C --> D["03 Frozen HMI"]
-  D --> E["04 Coil write"]
-  E --> F["05 Fallout"]
+  A["00 Baseline"] --> B["01 Vendor"] --> C["02 Engineering"]
+  C --> D["03 Injection"] --> E["04 False HMI"] --> F["05 P-101 off"]
+  F --> G["06 Contain"] --> H["07 Approve"] --> I["08 Verify"]
+  I -->|PASS| J["09 Report"]
+  I -->|FAIL| K["10 Escalate"]
 ```
 
-Documentary timings live in `app/lib/scenario.ts`. Live-range stages live in `range/royal-duke/scenario.json`. When the range is attached, the film follows proven controller stage, not the autoplay clock.
+`range/royal-duke/scenario.json` owns actions, prerequisites, scenes, copy,
+camera shots, map propagation, thresholds, campaign counts, agent labels,
+runbook authority steps, and evidence labels. `app/lib/scenario.ts` validates and
+adapts that contract for the UI. When the range is attached, visible scene is
+derived from completed actions, defensive state, and fleet status—not from an
+independent presentation clock.
 
 ---
 
@@ -139,20 +153,16 @@ Facility coordinates are visualization and research data. They are not ingress p
 
 ---
 
-## Defend the plant
+## Runbook and authority
 
-**Defend** opens a $500,000 investigation file. Controls do not change the attacker’s path. They choose *where the path dies* on replay.
+**Runbook & authority** opens the compiled response and canonical evidence
+notebook. It makes five boundaries visible: deterministic incident declaration,
+hostile-evidence quarantine, preapproved preservation and containment, human
+approval for P-101 restoration, and deterministic recovery verification.
 
-| Control | Cost | Stops |
-| --- | --- | --- |
-| Vendor MFA + just-in-time access | $30,000 | 01 |
-| Recorded privileged sessions | $120,000 | 01 |
-| OT DMZ + security perimeter | $180,000 | 02 |
-| Historian integrity monitoring | $120,000 | 03 |
-| Independent process telemetry | $80,000 | 03 |
-| PLC allow-listing + safety logic | $90,000 | 04 |
-
-Spend cannot exceed the cap. Replay jumps to the earliest funded break. Pressure stays inside the design envelope (58–64 PSI on the film; 62 PSI held on the live model). The evidence notebook records which chapter still has no control.
+The panel is generated from the same scenario contract as the map and cockpit.
+It is explanatory; clicking it cannot create a capability or advance incident
+state.
 
 ---
 
@@ -235,26 +245,29 @@ app/
   page.tsx                 Film state, keyboard, live-telemetry handoff
   components/
     DocumentaryMap.tsx     MapLibre globe, camera shots, site labels
-    FilmOverlay.tsx        HUD, chapters, transport
+    FilmOverlay.tsx        HUD, JSON scenes, transport
     TitleSequence.tsx      Opening titles
-    DefenseBrief.tsx       $500K control planner
-    AttackSurface.tsx      OT hops + live actions
+    DefenseBrief.tsx       Compiled response + authority boundaries
+    AttackSurface.tsx      Guided attack + fleet cockpit
   lib/
-    scenario.ts            Chapters, nodes, edges, defenses, cameras
+    scenario.ts            Validated adapter over the canonical scenario JSON
     loudoun.ts             69 public hall centroids
     nervous-system.ts      Veins, packets, pulse rings
     beacon-layer.ts        Three.js monuments on the map GL context
     map-style.ts           Graded Esri satellite + fallback
     useRangeTelemetry.ts   Optional ?range= attachment
 range/royal-duke/
-  scenario.json            Executable attack-surface model
+  scenario.json            Executable attack, presentation, map, and authority contract
   docker-compose.yml       Isolated OT-sim stack
   config/                  PLC + gateway XML
   controller/              Allowlisted HTTP API
 loudoun_data_centers.json  Public OSM-derived hall list
 ```
 
-The documentary map is a projection of `app/lib/scenario.ts`. When `?range=` is healthy, operator and physical PSI come from OT-sim, and chapter index follows proven controller stage.
+The documentary map and cockpit are projections of the same
+`range/royal-duke/scenario.json`. When `?range=` is healthy, operator and
+physical PSI come from OT-sim, while the visible scene follows proven action and
+fleet state.
 
 ---
 
@@ -285,11 +298,11 @@ Satellite imagery: Esri, Maxar, Earthstar Geographics. Building extrusions: Open
 | Key | Action |
 | --- | --- |
 | `Space` | Play / pause the briefing |
-| `→` | Advance one chapter |
-| `←` | Go back one chapter |
-| `Esc` | Skip intro, or close Defend / Attack surface |
+| `→` | Advance one scene |
+| `←` | Go back one scene |
+| `Esc` | Skip intro, or close Runbook / Attack surface |
 
-On-screen: **Play briefing**, **Advance**, chapter rail, **Defend**, **Attack surface**.
+On-screen: **Play briefing**, **Advance**, scene rail, **Runbook & authority**, **Attack surface**.
 
 ---
 

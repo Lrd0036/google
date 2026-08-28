@@ -437,7 +437,7 @@ button {
   grid-area: chapters;
   position: static;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(11, minmax(0, 1fr));
   gap: 0;
   pointer-events: auto;
 }
@@ -589,7 +589,8 @@ button {
   border-top: 1px solid var(--rule);
 }
 
-.brief-controls button {
+.brief-controls button,
+.brief-controls .runbook-step {
   display: grid;
   grid-template-columns: 42px 1fr auto;
   gap: 14px;

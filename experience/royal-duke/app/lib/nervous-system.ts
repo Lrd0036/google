@@ -41,8 +41,6 @@ type Ring = {
 
 type SimState = {
   stage: number;
-  contained: boolean;
-  blockStage: number;
   pressure: number;
   now: number;
   reduced: boolean;
@@ -81,7 +79,7 @@ export class NervousSystem {
         if (state.stage >= node.reveal && !this.nodeBorn.has(node.id)) {
           this.nodeBorn.set(node.id, state.now);
           if (node.kind !== 'load') {
-            this.rings.push({ lngLat: node.lngLat, born: state.now, hot: siteCompromised(node, state.stage, state.contained, state.blockStage) });
+            this.rings.push({ lngLat: node.lngLat, born: state.now, hot: siteCompromised(node, state.stage) });
           }
         }
       }
@@ -102,7 +100,7 @@ export class NervousSystem {
     }
 
     for (const edge of EDGES) {
-      const infected = edgeInfected(edge, state.stage, state.contained, state.blockStage);
+      const infected = edgeInfected(edge, state.stage);
       const born = this.edgeBorn.get(edge.id);
       if (!infected || born === undefined) continue;
       const dest = BY_ID[edge.to];
@@ -131,8 +129,8 @@ export class NervousSystem {
     for (const packet of this.packets) {
       const edge = EDGES.find((item) => item.id === packet.edgeId);
       if (!edge) continue;
-      const infected = edgeInfected(edge, state.stage, state.contained, state.blockStage);
-      const blocked = edgeBlocked(edge, state.stage, state.contained, state.blockStage);
+      const infected = edgeInfected(edge, state.stage);
+      const blocked = edgeBlocked(edge, state.stage);
       const cap = blocked ? 0.52 : 1;
       if (!infected && !blocked) continue;
       packet.t += packet.speed * dt;
@@ -174,8 +172,8 @@ export class NervousSystem {
       const to = BY_ID[edge.to];
       const born = this.edgeBorn.get(edge.id) ?? state.now;
       const drawOn = state.reduced ? 1 : smoothstep(0, 1.15, (state.now - born) / 1150);
-      const infected = edgeInfected(edge, state.stage, state.contained, state.blockStage);
-      const blocked = edgeBlocked(edge, state.stage, state.contained, state.blockStage);
+      const infected = edgeInfected(edge, state.stage);
+      const blocked = edgeBlocked(edge, state.stage);
       const load = to.kind === 'load';
       const path = projectPath(map, samplePath(from.lngLat, to.lngLat, load ? 20 : 40));
       const color = infected ? BLOOD : PAPER;
@@ -232,7 +230,7 @@ export class NervousSystem {
       if (!pointInView(p, w, h, 120)) continue;
       const born = this.nodeBorn.get(node.id) ?? state.now;
       const appear = state.reduced ? 1 : smoothstep(0, 0.8, (state.now - born) / 800);
-      const hot = siteCompromised(node, state.stage, state.contained, state.blockStage);
+      const hot = siteCompromised(node, state.stage);
       const color = hot ? BLOOD : PAPER;
       const pulse = 0.72 + Math.sin(state.now * 0.003 + node.lngLat[0]) * 0.28;
       const glowSize = (node.kind === 'load' ? (hot ? 42 : 28) : hot ? 86 : 64) * appear * pulse;
