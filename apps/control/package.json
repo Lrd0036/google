@@ -34,6 +34,10 @@
     "./audit": {
       "types": "./dist/audit.d.ts",
       "import": "./dist/audit.js"
+    },
+    "./royal-duke-exercise": {
+      "types": "./dist/royal-duke-exercise.d.ts",
+      "import": "./dist/royal-duke-exercise.js"
     }
   },
   "scripts": {

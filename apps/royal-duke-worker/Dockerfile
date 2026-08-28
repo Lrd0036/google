@@ -3,10 +3,10 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json ./
 COPY packages/ packages/
-COPY apps/acme-worker/ apps/acme-worker/
+COPY apps/royal-duke-worker/ apps/royal-duke-worker/
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter "@runbook/acme-worker" run build
-RUN pnpm --filter "@runbook/acme-worker" deploy --prod /prod
+RUN pnpm --filter "@runbook/royal-duke-worker" run build
+RUN pnpm --filter "@runbook/royal-duke-worker" deploy --prod /prod
 
 FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 AS runner
 WORKDIR /app

@@ -4,6 +4,7 @@ RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json ./
 COPY packages/ packages/
 COPY apps/control/ apps/control/
+COPY fixtures/ fixtures/
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter "@runbook/control" run build
 RUN pnpm --filter "@runbook/control" deploy --prod /prod
@@ -13,6 +14,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 RUN apk upgrade --no-cache && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/pnpm /usr/local/bin/pnpx
 COPY --chown=node:node --from=builder /prod/ ./
+COPY --chown=node:node --from=builder /app/fixtures ./fixtures
 USER node
 
 EXPOSE 8080

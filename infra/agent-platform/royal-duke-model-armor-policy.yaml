@@ -1,0 +1,17 @@
+name: royal-duke-model-armor
+target:
+  resources:
+    - projects/project-87ae1ae6-1a71-468d-943/locations/us-central1/agentGateways/royal-duke-egress
+policyProfile: CONTENT_AUTHZ
+action: CUSTOM
+customProvider:
+  authzExtension:
+    resources:
+      - projects/project-87ae1ae6-1a71-468d-943/locations/us-central1/authzExtensions/royal-duke-model-armor
+httpRules:
+  - to:
+      operations:
+        - paths:
+            - prefix: /
+    when: request.headers['content-type'] == 'application/json' || request.headers['content-type'].startsWith('text/')
+

@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { createHash, generateKeyPairSync } from 'node:crypto';
+import { createHash, generateKeyPairSync, timingSafeEqual } from 'node:crypto';
 import { Firestore } from '@google-cloud/firestore';
 import { RBIRDocumentSchema } from '@runbook/types';
 import { FirestoreExecutionStore, ExecutionController, initialEventHash, requireFirestoreDocumentId } from './runtime.js';
@@ -8,6 +8,8 @@ import { PubSubResumeEventPublisher } from './resume-events.js';
 import { executeOverBroker } from './local-orchestrator.js';
 import { buildAuditBundle } from './audit.js';
 import { ArtifactAdmissionStore } from './artifact-store.js';
+import { generateCampaignEvents, RoyalDukeExerciseManager } from './royal-duke-exercise.js';
+import { campaignPage, FirestoreExerciseStore, RoyalDukeFleetEffects } from './royal-duke-fleet.js';
 export * from './scheduler.js';
 export * from './audit.js';
 
@@ -16,6 +18,8 @@ export * from './authority.js';
 export * from './resume-events.js';
 export * from './local-orchestrator.js';
 export * from './artifact-store.js';
+export * from './royal-duke-exercise.js';
+export * from './royal-duke-fleet.js';
 
 const port = Number(process.env.PORT || 8080);
 const localMode = process.env.DEPLOYMENT_MODE === 'local';
@@ -26,6 +30,11 @@ const firestore = new Firestore({ projectId: process.env.GCP_PROJECT || 'runbook
 const executionCollection = localMode ? 'executions' : 'v1_executions';
 const controller = new ExecutionController(new FirestoreExecutionStore(firestore, executionCollection));
 const artifactStore = new ArtifactAdmissionStore(firestore, process.env.ARTIFACT_BUCKET);
+const royalDukeExercises = new RoyalDukeExerciseManager(
+  new FirestoreExerciseStore(firestore, localMode ? 'royal_duke_exercises' : 'v1_royal_duke_exercises'),
+  new RoyalDukeFleetEffects(),
+);
+const royalDukeCampaign = generateCampaignEvents();
 const approvalReplay = new MemoryApprovalReplayStore();
 const cloudApprovalReplay = new FirestoreApprovalReplayStore(firestore);
 const approvalKms = !localMode && process.env.APPROVAL_KMS_KEY_VERSION ? new (await import('@google-cloud/kms')).KeyManagementServiceClient() : undefined;
@@ -35,6 +44,7 @@ const localAuthorityId = process.env.LOCAL_AUTHORITY_ID ?? '';
 const localOperatorPrincipals = new Set((process.env.LOCAL_OPERATOR_PRINCIPALS ?? '').split(',').map((value) => value.trim()).filter(Boolean));
 if (localAuthorityEnabled && (!localAuthorityId || localOperatorPrincipals.size === 0)) throw new Error('LOCAL_AUTHORITY requires LOCAL_AUTHORITY_ID and LOCAL_OPERATOR_PRINCIPALS');
 const maxJsonBodyBytes = Number(process.env.MAX_JSON_BODY_BYTES || 1_048_576);
+const fleetBridgeToken = process.env.FLEET_BRIDGE_TOKEN ?? '';
 function canonicalJson(value: unknown): string { if (value === null || typeof value !== 'object') return JSON.stringify(value); if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`; const object = value as Record<string, unknown>; return `{${Object.keys(object).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(object[key])}`).join(',')}}`; }
 function sha256(value: unknown): string { return `sha256:${createHash('sha256').update(canonicalJson(value)).digest('hex')}`; }
 
@@ -59,17 +69,130 @@ function respond(res: import('node:http').ServerResponse, status: number, body: 
   res.end(JSON.stringify(body));
 }
 
+function authorizedFleetBridge(req: import('node:http').IncomingMessage): boolean {
+  if (!fleetBridgeToken) return localMode;
+  const supplied = req.headers['x-royal-duke-bridge-token'];
+  if (typeof supplied !== 'string') return false;
+  const expected = Buffer.from(fleetBridgeToken);
+  const received = Buffer.from(supplied);
+  return expected.length === received.length && timingSafeEqual(expected, received);
+}
+
 const server = createServer(async (req, res) => {
   const url = new URL(req.url || '/', `http://${req.headers.host}`);
 
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, { 'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'content-type,authorization' });
+    res.writeHead(204, { 'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'content-type,authorization,x-royal-duke-bridge-token' });
     res.end();
     return;
   }
 
   if (req.method === 'GET' && url.pathname === '/health') {
     respond(res, 200, { status: 'HEALTHY', service: 'rb-control' });
+    return;
+  }
+
+  if ((url.pathname === '/exercises' || url.pathname.startsWith('/exercises/') || url.pathname.startsWith('/fleet/')) && !authorizedFleetBridge(req)) {
+    respond(res, 401, { error: 'FLEET_BRIDGE_UNAUTHORIZED' });
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/exercises') {
+    try {
+      const body = await readJson(req);
+      if (typeof body.range_run_id !== 'string' || !body.range_run_id) throw new Error('RANGE_RUN_ID_REQUIRED');
+      respond(res, 201, await royalDukeExercises.start(body.range_run_id));
+    } catch (error) { respond(res, 400, { error: error instanceof Error ? error.message : 'Exercise creation failed' }); }
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/fleet/provenance') {
+    try {
+      const exerciseId = url.searchParams.get('exercise_id') ?? undefined;
+      respond(res, 200, { items: await royalDukeExercises.provenance(exerciseId) });
+    } catch (error) { respond(res, 404, { error: error instanceof Error ? error.message : 'Provenance unavailable' }); }
+    return;
+  }
+
+  const exerciseMatch = /^\/exercises\/([^/]+)$/.exec(url.pathname);
+  if (req.method === 'GET' && exerciseMatch?.[1]) {
+    try { respond(res, 200, await royalDukeExercises.get(routeExecutionId(exerciseMatch[1]))); }
+    catch (error) { respond(res, 404, { error: error instanceof Error ? error.message : 'Exercise not found' }); }
+    return;
+  }
+
+  const campaignMatch = /^\/exercises\/([^/]+)\/campaign$/.exec(url.pathname);
+  if (req.method === 'GET' && campaignMatch?.[1]) {
+    try {
+      await royalDukeExercises.get(routeExecutionId(campaignMatch[1]));
+      respond(res, 200, campaignPage(royalDukeCampaign, Number(url.searchParams.get('offset') ?? 0), Number(url.searchParams.get('limit') ?? 25)));
+    } catch (error) { respond(res, 404, { error: error instanceof Error ? error.message : 'Campaign unavailable' }); }
+    return;
+  }
+
+  const attackMatch = /^\/exercises\/([^/]+)\/attack$/.exec(url.pathname);
+  if (req.method === 'POST' && attackMatch?.[1]) {
+    try {
+      const body = await readJson(req);
+      if (typeof body.action_id !== 'string') throw new Error('ACTION_ID_REQUIRED');
+      respond(res, 200, await royalDukeExercises.attack(routeExecutionId(attackMatch[1]), body.action_id));
+    } catch (error) { respond(res, 409, { error: error instanceof Error ? error.message : 'Attack event rejected' }); }
+    return;
+  }
+
+  const observationMatch = /^\/exercises\/([^/]+)\/observations$/.exec(url.pathname);
+  if (req.method === 'POST' && observationMatch?.[1]) {
+    try { respond(res, 200, await royalDukeExercises.observe(routeExecutionId(observationMatch[1]), await readJson(req))); }
+    catch (error) { respond(res, 400, { error: error instanceof Error ? error.message : 'Observation rejected' }); }
+    return;
+  }
+
+  const approvalMatch = /^\/exercises\/([^/]+)\/approvals$/.exec(url.pathname);
+  if (req.method === 'POST' && approvalMatch?.[1]) {
+    try {
+      const body = await readJson(req);
+      if ((body.decision !== 'APPROVE' && body.decision !== 'REJECT') || typeof body.principal !== 'string') throw new Error('INVALID_APPROVAL');
+      if (localMode && !localOperatorPrincipals.has(body.principal)) throw new Error('UNTRUSTED_LOCAL_OPERATOR');
+      if (!localMode && typeof body.assertion_id !== 'string') throw new Error('SIGNED_APPROVAL_REQUIRED');
+      respond(res, 202, await royalDukeExercises.approve(routeExecutionId(approvalMatch[1]), body.decision, body.principal, typeof body.assertion_id === 'string' ? body.assertion_id : undefined, false));
+    } catch (error) { respond(res, 403, { error: error instanceof Error ? error.message : 'Approval rejected' }); }
+    return;
+  }
+
+  const reportMatch = /^\/exercises\/([^/]+)\/report$/.exec(url.pathname);
+  if (req.method === 'GET' && reportMatch?.[1]) {
+    try {
+      const exercise = await royalDukeExercises.get(routeExecutionId(reportMatch[1]));
+      if (!exercise.report) { respond(res, 409, { error: 'REPORT_NOT_READY' }); return; }
+      respond(res, 200, exercise.report);
+    } catch (error) { respond(res, 404, { error: error instanceof Error ? error.message : 'Report unavailable' }); }
+    return;
+  }
+
+  const bundleMatch = /^\/exercises\/([^/]+)\/bundle$/.exec(url.pathname);
+  if (req.method === 'GET' && bundleMatch?.[1]) {
+    try {
+      const exercise = await royalDukeExercises.get(routeExecutionId(bundleMatch[1]));
+      if (!exercise.report) { respond(res, 409, { error: 'REPORT_NOT_READY' }); return; }
+      const withoutHash = {
+        schema: 'royal-duke-evidence-bundle/v1',
+        exercise_id: exercise.exercise_id,
+        generated_at: exercise.report.generated_at,
+        report: exercise.report,
+        timeline: exercise.events,
+        attack_chain: exercise.facts,
+        agent_activity: exercise.activities,
+        compromised_shadow_output: exercise.shadow_decision,
+        authoritative_recommendation: exercise.authoritative_decision,
+        model_armor: exercise.model_armor,
+        approval: exercise.approval,
+        latest_process_observation: exercise.latest_observation,
+        trace_id: exercise.trace_id,
+        event_chain_valid: exercise.report.event_chain_valid,
+        limitations: exercise.report.limitations,
+      };
+      respond(res, 200, { ...withoutHash, bundle_sha256: sha256(withoutHash) });
+    } catch (error) { respond(res, 404, { error: error instanceof Error ? error.message : 'Evidence bundle unavailable' }); }
     return;
   }
 

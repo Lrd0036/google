@@ -6,3 +6,4 @@ export * from './manifest.js';
 export * from './rbir.js';
 export * from './state.js';
 export * from './release-attestation.js';
+export * from './exercise.js';

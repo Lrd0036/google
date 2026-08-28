@@ -38,6 +38,10 @@
     "./release-attestation": {
       "types": "./dist/release-attestation.d.ts",
       "import": "./dist/release-attestation.js"
+    },
+    "./exercise": {
+      "types": "./dist/exercise.d.ts",
+      "import": "./dist/exercise.js"
     }
   },
   "scripts": {

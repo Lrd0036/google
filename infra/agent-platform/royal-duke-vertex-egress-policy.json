@@ -1,0 +1,15 @@
+{
+  "etag": "ACAB",
+  "bindings": [
+    {
+      "role": "roles/iap.egressor",
+      "members": [
+          "principal://agents.global.org-501518161732.system.id.goog/resources/aiplatform/projects/248197109620/locations/us-central1/reasoningEngines/1492878955043094528",
+          "principal://agents.global.org-501518161732.system.id.goog/resources/aiplatform/projects/248197109620/locations/us-central1/reasoningEngines/3782959365560991744",
+          "principal://agents.global.org-501518161732.system.id.goog/resources/aiplatform/projects/248197109620/locations/us-central1/reasoningEngines/3788588865095204864",
+          "principal://agents.global.org-501518161732.system.id.goog/resources/aiplatform/projects/248197109620/locations/us-central1/reasoningEngines/4092581839942713344",
+          "principal://agents.global.org-501518161732.system.id.goog/resources/aiplatform/projects/248197109620/locations/us-central1/reasoningEngines/8133436605600890880"
+      ]
+    }
+  ]
+}

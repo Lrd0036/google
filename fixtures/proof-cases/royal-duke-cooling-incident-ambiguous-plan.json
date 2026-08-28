@@ -1,7 +1,7 @@
 {
-  "runbook_id": "acme-ingestion-recovery-ambiguous",
+  "runbook_id": "royal-duke-cooling-incident-ambiguous",
   "version": 1,
-  "tenant_id": "acme-demo",
+  "tenant_id": "royal-duke-demo",
   "entry_node": "bad_condition",
   "context_schema": { "type": "object", "additionalProperties": false, "required": ["job_id"], "properties": { "job_id": { "type": "string" } } },
   "nodes": [

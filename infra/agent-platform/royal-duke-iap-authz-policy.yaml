@@ -1,0 +1,11 @@
+name: royal-duke-iap-enforce
+target:
+  resources:
+    - projects/project-87ae1ae6-1a71-468d-943/locations/us-central1/agentGateways/royal-duke-egress
+policyProfile: REQUEST_AUTHZ
+action: CUSTOM
+customProvider:
+  authzExtension:
+    resources:
+      - projects/project-87ae1ae6-1a71-468d-943/locations/us-central1/authzExtensions/royal-duke-iap-enforce
+

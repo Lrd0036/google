@@ -36,6 +36,7 @@ services:
       - LOCAL_AUTHORITY=true
       - LOCAL_AUTHORITY_ID=local-incident-commander
       - LOCAL_OPERATOR_PRINCIPALS=local-operator
+      - FLEET_BRIDGE_TOKEN=${FLEET_BRIDGE_TOKEN:-royal-duke-local-demo-bridge-v1}
     depends_on:
       - firestore-emulator
       - pubsub-emulator
@@ -53,21 +54,22 @@ services:
       - LOCAL_TRANSPORT=true
       - DEPLOYMENT_MODE=local
       - LOCAL_MOCK_MUTATION_GATE=true
-      - ALLOWED_CAPABILITY_ORIGINS=http://acme-worker:8082
+      - ALLOWED_CAPABILITY_ORIGINS=http://royal-duke-worker:8082
       - FIRESTORE_EMULATOR_HOST=firestore-emulator:8085
     depends_on:
-      - acme-worker
+      - royal-duke-worker
       - firestore-emulator
 
-  acme-worker:
+  royal-duke-worker:
     build:
       context: ../..
-      dockerfile: apps/acme-worker/Dockerfile
-    container_name: acme-worker
+      dockerfile: apps/royal-duke-worker/Dockerfile
+    container_name: royal-duke-worker
     ports:
       - '8082:8082'
     environment:
       - PORT=8082
+      - ROYAL_DUKE_CONTROLLER_URL=${ROYAL_DUKE_CONTROLLER_URL:-}
 
   rb-console:
     build:

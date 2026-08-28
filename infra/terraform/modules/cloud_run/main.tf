@@ -96,7 +96,7 @@ resource "google_cloud_run_v2_service" "broker" {
 
 resource "google_cloud_run_v2_service" "worker" {
   project  = var.project_id
-  name     = "acme-worker"
+  name     = "royal-duke-worker"
   location = var.region
   ingress  = "INGRESS_TRAFFIC_ALL"
   template {
@@ -107,7 +107,7 @@ resource "google_cloud_run_v2_service" "worker" {
       max_instance_count = 10
     }
     containers {
-      image = "${var.repository_url}/acme-worker:${var.image_tag}"
+      image = "${var.repository_url}/royal-duke-worker:${var.image_tag}"
       ports { container_port = 8080 }
       resources {
         limits            = { cpu = "1", memory = "512Mi" }

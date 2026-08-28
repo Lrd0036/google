@@ -1,8 +1,8 @@
 {
-  "name": "@runbook/acme-worker",
+  "name": "@runbook/royal-duke-worker",
   "version": "0.1.0",
   "private": true,
-  "description": "Reference capability provider implementing acme-operations manifest with fault injection",
+  "description": "Bounded Royal Duke OT capability adapter for the fictional cooling-plant range",
   "type": "module",
   "main": "./dist/index.js",
   "scripts": {

@@ -34,7 +34,7 @@ flowchart LR
 - `apps/`
   - `control/`: Cloud Run state machine runtime and Firestore controller (`@runbook/control`).
   - `broker/`: Cloud Run Action Broker Policy Enforcement Point (PEP) (`@runbook/broker`).
-  - `acme-worker/`: Mock capability provider with fault injection (`@runbook/acme-worker`).
+  - `royal-duke-worker/`: Bounded Royal Duke OT capability adapter (`@runbook/royal-duke-worker`).
   - `console/`: Operator Web UI (React + Vite) (`@runbook/console`).
 - `infra/`
   - `docker/`: Local Docker Compose with Firestore and Pub/Sub emulators.
@@ -58,20 +58,15 @@ pnpm typecheck
 ## Local implementation path
 
 The repository includes an offline reviewed-plan compiler and a local vertical
-slice for the Acme fixture. A compile plan is intentionally explicit: prose
+slice for the Royal Duke cooling-plant incident. A compile plan is intentionally explicit: prose
 extraction remains advisory and cannot silently create capability bindings.
 
 ```bash
-pnpm local:compile       # writes .local/acme-ingestion-recovery.rbir.json
+pnpm local:compile       # writes .local/royal-duke-cooling-incident.rbir.json
 node packages/compiler/dist/cli.js review RUNBOOK.md --responses recorded-model-response.json
 node packages/compiler/dist/cli.js review RUNBOOK.md --live
 pnpm local:smoke          # compiled RBIR -> control runner -> broker -> worker -> VERIFY
-pnpm local:http-smoke     # Control HTTP endpoint -> Broker HTTP -> Worker -> VERIFY
-pnpm local:gemini-smoke   # same path with live Gemini 3.5 classifying telemetry (needs GEMINI_API_KEY)
-pnpm local:fault-smoke    # transient, malformed, injection, auth, replay, and 404 checks
 pnpm local:bench          # validate and score the pilot corpus
-pnpm local:pubsub-smoke   # publish/pull a resume envelope through the emulator
-pnpm local:approval-audit-smoke # Firestore-backed approval and audit HTTP flow
 pnpm local:cloud-guard-smoke # cloud mode exposes health only and rejects authority routes
 pnpm local:stack:config   # validate Docker Compose configuration
 docker compose -f infra/docker/docker-compose.yml build
@@ -84,11 +79,49 @@ signing. The Compose stack adds Firestore and Pub/Sub emulators, but cloud IAM,
 KMS, Secret Manager, immutable retention, and multi-region behavior remain
 deployment-only concerns.
 
-## Deployed demo
+## Royal Duke: Attack the Agent
 
-The bounded GCP demo is currently in security-containment mode: the public
-Console remains available, while cloud Control exposes health only and all
-execution/approval/resume routes fail closed until a trusted production
-authority and identity-admission path is implemented. Current infrastructure
-controls, historical execution evidence, and remaining gates are recorded in
-[`docs/deployment-evidence-2026-08-27.md`](./docs/deployment-evidence-2026-08-27.md).
+Royal Duke is the current product demo. The operator advances a bounded attack
+against a live OT-sim cooling process while six deployed ADK agents investigate
+the incident. Five authoritative specialists run behind Agent Gateway and Model
+Armor. A sixth, tool-less Shadow Analyst receives the raw hostile instruction
+outside that governed evidence path and demonstrates a successful model
+compromise without any capability, credential, approval power, or process
+connection.
+
+The demo proves this chain:
+
+```text
+214 deterministic campaign events
+  → four attributable attack facts
+  → >5 PSI divergence for 15 continuous seconds
+  → Model Armor MATCH_FOUND + hostile-evidence quarantine
+  → compiled containment actions through signed single-use grants
+  → blocked follow-up attacker write
+  → duty-operator approval boundary
+  → P-101 restoration
+  → independent pressure >58 PSI for 30 continuous seconds
+  → content-addressed incident bundle
+```
+
+The institutional provenance panel does not render configuration as proof. It
+reads Agent Registry records, distinct Agent Identity principals, Agent Runtime
+revisions, the admitted Memory Bank item, Gateway and authorization policy
+resources, the Model Armor template and persisted verdict-event, Firestore
+incident state, Pub/Sub resources, and the Cloud Trace record from live APIs.
+Any missing proof is shown as unavailable and fails readiness.
+
+The verified hybrid proof keeps the fictional process and raw OT protocols on
+the local Docker range. Agent Runtime, Registry, Identity, Gateway, Model Armor,
+Memory Bank, Firestore, Pub/Sub, Gemini 3.5, and Cloud Trace are managed Google
+Cloud resources. The local bridge and Control development process remain
+bounded prototype components; this is not evidence of production-plant control.
+
+Run the complete exercise after starting both local stacks:
+
+```bash
+pnpm local:royal-duke-exercise
+```
+
+The generated evidence bundle is available from
+`GET /exercises/:exercise_id/bundle` and includes its own SHA-256 digest.

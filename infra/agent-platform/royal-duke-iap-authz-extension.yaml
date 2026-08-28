@@ -1,0 +1,6 @@
+name: royal-duke-iap-enforce
+service: iap.googleapis.com
+failOpen: false
+timeout: 1s
+metadata:
+  iapPolicyVersion: V1

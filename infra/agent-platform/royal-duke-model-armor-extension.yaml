@@ -1,0 +1,7 @@
+name: royal-duke-model-armor
+service: modelarmor.us-central1.rep.googleapis.com
+metadata:
+  model_armor_settings: '[{"response_template_id":"projects/project-87ae1ae6-1a71-468d-943/locations/us-central1/templates/royal-duke-agent-defense","request_template_id":"projects/project-87ae1ae6-1a71-468d-943/locations/us-central1/templates/royal-duke-agent-defense"}]'
+failOpen: false
+timeout: 1s
+

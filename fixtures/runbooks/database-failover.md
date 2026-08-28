@@ -1,7 +1,7 @@
 # Primary Database Disaster Recovery Failover
 
 **Runbook ID:** `database-failover`  
-**Tenant:** `acme-demo`  
+**Tenant:** `royal-duke-demo`
 **Version:** 3  
 
 ## Trigger Condition

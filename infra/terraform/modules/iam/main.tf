@@ -4,7 +4,7 @@ locals {
   identities = {
     control      = "rb-control"
     broker       = "rb-broker"
-    worker       = "acme-worker"
+    worker       = "royal-duke-worker"
     console      = "rb-console"
     pubsub       = "rb-pubsub-push"
     authority    = "rb-authority"
