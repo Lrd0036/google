@@ -17,6 +17,12 @@ const allowedOrigins = new Set(
 
 const scenario = JSON.parse(await readFile(scenarioPath, 'utf8'));
 const actionById = new Map(scenario.actions.map((action) => [action.id, action]));
+const streamClients = new Set();
+let exerciseCreation = null;
+let observationInFlight = false;
+let streamSnapshotInFlight = false;
+let fleetRefreshInFlight = false;
+let stateRevision = 0;
 const state = {
   runId: crypto.randomUUID(),
   completedActions: [],
@@ -66,31 +72,63 @@ async function fleetRequest(path, options = {}) {
 
 async function ensureExercise() {
   if (!fleetApi) return null;
-  if (!state.exerciseId) {
-    const exercise = await fleetRequest('/exercises', { method: 'POST', body: JSON.stringify({ range_run_id: state.runId }) });
-    state.exerciseId = exercise.exercise_id;
-    state.fleet = exercise;
+  if (!state.exerciseId && !exerciseCreation) {
+    const creatingForRunId = state.runId;
+    exerciseCreation = fleetRequest('/exercises', { method: 'POST', body: JSON.stringify({ range_run_id: state.runId }) })
+      .then((exercise) => {
+        if (state.runId !== creatingForRunId) return null;
+        state.exerciseId = exercise.exercise_id;
+        state.fleet = exercise;
+        return exercise.exercise_id;
+      })
+      .finally(() => { exerciseCreation = null; });
   }
+  if (!state.exerciseId) await exerciseCreation;
   return state.exerciseId;
+}
+
+function processObservation(points) {
+  return {
+    observed_at: new Date().toISOString(),
+    pump_state: Number(points['process.pump.actual']) ? 'ENERGIZED' : 'DE_ENERGIZED',
+    independent_pressure_psi: Number(points['process.pressure.psi']),
+    operator_pressure_psi: Number(points['operator.pressure.psi']),
+    remote_write_path: state.defensive.remoteWritesContained ? 'CONTAINED' : 'AVAILABLE',
+    evidence_preserved: state.defensive.evidencePreserved,
+    restoration_prepared: state.defensive.restorationPrepared,
+  };
+}
+
+async function submitObservation(points) {
+  if (!fleetApi) return;
+  const exerciseId = await ensureExercise();
+  if (!exerciseId) return;
+  const exercise = await fleetRequest(`/exercises/${encodeURIComponent(exerciseId)}/observations`, {
+    method: 'POST',
+    body: JSON.stringify(processObservation(points)),
+  });
+  if (state.exerciseId === exerciseId) state.fleet = exercise;
+}
+
+async function refreshFleet() {
+  if (!fleetApi) return;
+  const exerciseId = await ensureExercise();
+  if (!exerciseId) return;
+  const [exercise, provenance] = await Promise.all([
+    fleetRequest(`/exercises/${encodeURIComponent(exerciseId)}`),
+    fleetRequest(`/fleet/provenance?exercise_id=${encodeURIComponent(exerciseId)}`),
+  ]);
+  if (state.exerciseId === exerciseId) {
+    state.fleet = exercise;
+    state.provenance = provenance?.items ?? [];
+  }
 }
 
 async function syncFleet(points) {
   if (!fleetApi) return;
   try {
-    const exerciseId = await ensureExercise();
-    if (!exerciseId) return;
-    const observation = {
-      observed_at: new Date().toISOString(),
-      pump_state: Number(points['process.pump.actual']) ? 'ENERGIZED' : 'DE_ENERGIZED',
-      independent_pressure_psi: Number(points['process.pressure.psi']),
-      operator_pressure_psi: Number(points['operator.pressure.psi']),
-      remote_write_path: state.defensive.remoteWritesContained ? 'CONTAINED' : 'AVAILABLE',
-      evidence_preserved: state.defensive.evidencePreserved,
-      restoration_prepared: state.defensive.restorationPrepared,
-    };
-    state.fleet = await fleetRequest(`/exercises/${encodeURIComponent(exerciseId)}/observations`, { method: 'POST', body: JSON.stringify(observation) });
-    const provenance = await fleetRequest(`/fleet/provenance?exercise_id=${encodeURIComponent(exerciseId)}`);
-    state.provenance = provenance?.items ?? [];
+    await submitObservation(points);
+    await refreshFleet();
   } catch (error) {
     state.fleet = { status: 'BRIDGE_DEGRADED', error: error.message ?? 'fleet bridge failed' };
   }
@@ -141,6 +179,8 @@ async function currentState(sync = true) {
   const model = await telemetry();
   if (sync) await syncFleet(model.points);
   return {
+    revision: ++stateRevision,
+    emittedAt: new Date().toISOString(),
     modelId: scenario.modelId,
     schemaVersion: scenario.schemaVersion,
     runId: state.runId,
@@ -159,6 +199,49 @@ async function currentState(sync = true) {
   };
 }
 
+function publishState(snapshot) {
+  if (streamClients.size === 0) return;
+  const message = `event: state\ndata: ${JSON.stringify(snapshot)}\n\n`;
+  for (const client of streamClients) client.write(message);
+}
+
+async function publishCurrentState() {
+  publishState(await currentState(false));
+}
+
+// Physical telemetry changes independently of HTTP actions. Stream it at a
+// visual cadence so the map is a projection of the simulator, not a slide
+// deck advanced by the browser.
+setInterval(() => {
+  if (streamClients.size === 0 || streamSnapshotInFlight) return;
+  streamSnapshotInFlight = true;
+  void publishCurrentState()
+    .catch(() => {})
+    .finally(() => { streamSnapshotInFlight = false; });
+}, 250);
+
+// Submit trusted observations asynchronously. The separate fleet read loop
+// exposes intermediate Control states while a managed investigation is still
+// running, instead of hiding them behind one long observation request.
+setInterval(() => {
+  if (!fleetApi || streamClients.size === 0 || observationInFlight) return;
+  observationInFlight = true;
+  void telemetry()
+    .then((model) => submitObservation(model.points))
+    .then(() => publishCurrentState())
+    .catch((error) => { state.fleet = { status: 'BRIDGE_DEGRADED', error: error.message ?? 'fleet bridge failed' }; })
+    .finally(() => { observationInFlight = false; });
+}, 1000);
+
+setInterval(() => {
+  if (!fleetApi || streamClients.size === 0 || fleetRefreshInFlight) return;
+  fleetRefreshInFlight = true;
+  void refreshFleet()
+    .then(() => publishCurrentState())
+    .catch((error) => { state.fleet = { status: 'BRIDGE_DEGRADED', error: error.message ?? 'fleet bridge failed' }; })
+    .finally(() => { fleetRefreshInFlight = false; });
+}, 500);
+
 async function resetModel() {
   await writeTag(processApi, 'process.pump.command', 1);
   await writeTag(processApi, 'safety.interlock.enabled', 0);
@@ -170,6 +253,7 @@ async function resetModel() {
   state.events = [];
   state.defensive = { evidencePreserved: false, remoteWritesContained: false, restorationPrepared: false };
   state.exerciseId = null;
+  exerciseCreation = null;
   state.fleet = null;
   state.provenance = [];
   state.startedAt = new Date().toISOString();
@@ -258,9 +342,24 @@ const server = createServer(async (request, response) => {
       reply(response, request, 200, await currentState(url.searchParams.get('sync') !== 'false'));
       return;
     }
+    if (request.method === 'GET' && url.pathname === '/api/v1/events') {
+      response.writeHead(200, {
+        ...corsHeaders(request),
+        'content-type': 'text/event-stream; charset=utf-8',
+        connection: 'keep-alive',
+        'x-accel-buffering': 'no',
+      });
+      response.write('retry: 1000\n\n');
+      streamClients.add(response);
+      publishState(await currentState(false));
+      request.on('close', () => streamClients.delete(response));
+      return;
+    }
     if (request.method === 'POST' && url.pathname === '/api/v1/reset') {
       await resetModel();
-      reply(response, request, 200, await currentState());
+      const snapshot = await currentState(false);
+      publishState(snapshot);
+      reply(response, request, 200, snapshot);
       return;
     }
     if (request.method === 'POST' && url.pathname === '/api/v1/fleet/approve') {
@@ -270,7 +369,9 @@ const server = createServer(async (request, response) => {
         return;
       }
       state.fleet = await fleetRequest(`/exercises/${encodeURIComponent(exerciseId)}/approvals`, { method: 'POST', body: JSON.stringify({ decision: 'APPROVE', principal: 'local-operator' }) });
-      reply(response, request, 200, await currentState());
+      const snapshot = await currentState(false);
+      publishState(snapshot);
+      reply(response, request, 200, snapshot);
       return;
     }
     if (request.method === 'GET' && url.pathname === '/api/v1/fleet/report') {
@@ -302,7 +403,9 @@ const server = createServer(async (request, response) => {
       // The capability adapter is called by Control through Broker. Do not
       // synchronously call Control again before replying or the bridge forms a
       // circular wait; the regular state poll reports the result afterward.
-      reply(response, request, 200, await currentState(false));
+      const snapshot = await currentState(false);
+      publishState(snapshot);
+      reply(response, request, 200, snapshot);
       return;
     }
     const actionMatch = request.method === 'POST' && url.pathname.match(/^\/api\/v1\/actions\/([a-z0-9_]+)$/);
@@ -313,7 +416,9 @@ const server = createServer(async (request, response) => {
         return;
       }
       await applyAction(action);
-      reply(response, request, 200, await currentState());
+      const snapshot = await currentState(false);
+      publishState(snapshot);
+      reply(response, request, 200, snapshot);
       return;
     }
     reply(response, request, 404, { error: 'Not found' });

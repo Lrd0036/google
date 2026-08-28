@@ -357,6 +357,16 @@ Runbook Control      owns incident and fleet state
 React map/cockpit    renders those sources; it owns none of them
 ```
 
+In attached mode, the range controller publishes revisioned snapshots through
+`GET /api/v1/events` as server-sent events. OT telemetry is sampled at a
+250-millisecond visual cadence. Fleet observations are submitted separately so
+a long-running agent investigation cannot freeze the physical display, while a
+parallel Control read exposes intermediate states such as
+`FLEET_INVESTIGATING`, `AWAITING_APPROVAL`, and `VERIFYING`. The browser rejects
+older revisions, derives its scene from the newest canonical snapshot, disables
+the chapter rail and keyboard transport, and labels the projection
+`CONTROL STREAM · LIVE`. Manual stage state exists only in detached replay mode.
+
 ## Implementation change inventory
 
 The work replaced the previous synthetic ingestion demo rather than placing Royal Duke beside it under another label.
@@ -1122,6 +1132,7 @@ A verified cockpit screenshot is available at [`output/playwright/royal-duke-coc
 | `GET /health` | Verify process and gateway services |
 | `GET /api/v1/graph` | Read the scenario model |
 | `GET /api/v1/state` | Read telemetry, range state, fleet state, provenance, and events |
+| `GET /api/v1/events` | Subscribe to server-sent real-time Control and simulator state |
 | `POST /api/v1/reset` | Restore nominal pump, setpoint, and operator view |
 | `POST /api/v1/actions/:id` | Advance one scenario-defined attack action |
 | `POST /api/v1/fleet/approve` | Submit the local duty-operator decision to Control |
@@ -1163,7 +1174,7 @@ All `/exercises*` and `/fleet*` routes require the Royal Duke bridge credential 
 | `GET /proof/process` | Run bounded 58 PSI, 30-second verification |
 | `GET /operations/:id` | Read an operation result |
 
-The worker reads range state using `sync=false`. This avoids a circular callback in which Control waits for Broker, Broker waits for the worker, the worker waits for the range, and the range tries to synchronously call Control again. The normal polling loop reports the resulting physical state afterward.
+The worker reads range state using `sync=false`. This avoids a circular callback in which Control waits for Broker, Broker waits for the worker, the worker waits for the range, and the range tries to synchronously call Control again. The range controller's server-sent event stream reports the resulting physical and Control state afterward.
 
 ## Institutional provenance panel
 

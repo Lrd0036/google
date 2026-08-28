@@ -57,6 +57,16 @@ cloud-production evidence.
   corpus is not publishable: all 12 items remain `ANNOTATION_PENDING` and no
   human adjudication has been supplied.
 
+- [x] **CLAIM 9 — The Royal Duke map is a real-time projection of Control and OT-sim state, not a manually advanced presentation.** `[LOCAL] [BROWSER]`
+
+  Evidence: `GET /api/v1/events` streams revisioned state snapshots; the range
+  smoke subscribes before each action and verifies the corresponding state
+  event; attached browser mode disables every chapter button and replaces the
+  transport with `CONTROL STREAM · LIVE`. Playwright confirmed that pressing
+  `BEGIN ATTACK` in the Control Panel moved the map from `Normal operations` to
+  `Trusted vendor session` without a scene click. Screenshot:
+  `experience/royal-duke/output/playwright/royal-duke-control-stream.png`.
+
 ## Current product milestone
 
 The Royal Duke cooling-plant runbook now completes through the actual hybrid

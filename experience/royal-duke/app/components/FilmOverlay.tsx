@@ -7,6 +7,7 @@ import { EXPERIENCE, STAGES, THRESHOLDS } from '../lib/scenario';
 
 type Props = {
   stage: number;
+  controlled: boolean;
   playing: boolean;
   operatorPressure: number;
   physicalPressure: number;
@@ -21,6 +22,7 @@ type Props = {
 
 export default function FilmOverlay({
   stage,
+  controlled,
   playing,
   operatorPressure,
   physicalPressure,
@@ -63,7 +65,7 @@ export default function FilmOverlay({
             <b>T+ {current.storyTime}</b>
           </div>
           <div className="mast-links">
-            <button type="button" className="text-btn" onClick={onInspect}>Attack surface</button>
+            <button type="button" className="text-btn" onClick={onInspect}>Control panel</button>
             <button type="button" className="text-btn" onClick={onDefend}>Runbook &amp; authority</button>
           </div>
         </div>
@@ -110,6 +112,7 @@ export default function FilmOverlay({
               key={item.short}
               type="button"
               className={index === stage ? 'is-active' : index < stage ? 'is-done' : ''}
+              disabled={controlled}
               onClick={() => onStage(index)}
             >
               <span>{String(index).padStart(2, '0')}</span>
@@ -118,7 +121,11 @@ export default function FilmOverlay({
           ))}
         </nav>
 
-        <div className="transport">
+        {controlled ? <div className="transport is-controlled">
+          <span><i /> CONTROL STREAM · LIVE</span>
+          <button type="button" className="play" onClick={onInspect}>Open control panel</button>
+          <small>Map and simulator follow canonical Control state</small>
+        </div> : <div className="transport">
           <button type="button" onClick={onReset}>
             Reset
           </button>
@@ -128,7 +135,7 @@ export default function FilmOverlay({
           <button type="button" onClick={onAdvance}>
             {current.activation.statuses?.some((status) => status === 'COMPLETED' || status === 'ESCALATED') ? 'Hold on outcome' : 'Advance'}
           </button>
-        </div>
+        </div>}
       </div>
     </div>
   );

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
 export type RangeState = {
+  revision: number;
+  emittedAt: string;
   modelId: string;
   schemaVersion: string;
   runId: string;
@@ -90,9 +92,34 @@ export function useRangeTelemetry() {
 
   useEffect(() => {
     if (!endpoint) return;
-    const initial = window.setTimeout(() => void refresh(), 0);
-    const timer = window.setInterval(() => void refresh(), 1500);
-    return () => { window.clearTimeout(initial); window.clearInterval(timer); };
+    if (typeof EventSource === 'undefined') {
+      const initial = window.setTimeout(() => void refresh(), 0);
+      const timer = window.setInterval(() => void refresh(), 1500);
+      return () => { window.clearTimeout(initial); window.clearInterval(timer); };
+    }
+
+    const stream = new EventSource(`${endpoint}/api/v1/events`);
+    let receivedState = false;
+    stream.addEventListener('state', (event) => {
+      try {
+        const next = JSON.parse((event as MessageEvent<string>).data) as RangeState;
+        receivedState = true;
+        setState((current) => !current || next.revision >= current.revision ? next : current);
+        const healthy = Object.values(next.services).every((service) => service === 'online');
+        setConnection(healthy ? 'online' : 'degraded');
+        setError(next.telemetryErrors[0] ?? next.fleet?.error ?? '');
+      } catch {
+        setConnection('degraded');
+        setError('The range controller emitted an invalid state event.');
+      }
+    });
+    stream.onopen = () => setConnection((value) => value === 'online' ? value : 'connecting');
+    stream.onerror = () => {
+      setConnection('degraded');
+      setError('Real-time Control stream interrupted; reconnecting.');
+      if (!receivedState) void refresh();
+    };
+    return () => stream.close();
   }, [endpoint, refresh]);
 
   const post = useCallback(
@@ -107,7 +134,7 @@ export function useRangeTelemetry() {
         const response = await fetch(`${endpoint}${path}`, { method: 'POST', signal: AbortSignal.timeout(120_000) });
         const body = (await response.json()) as RangeState & { error?: string };
         if (!response.ok) throw new Error(body.error ?? `Range controller returned ${response.status}.`);
-        setState(body);
+        setState((current) => !current || body.revision >= current.revision ? body : current);
         setConnection('online');
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : 'Range action failed.');

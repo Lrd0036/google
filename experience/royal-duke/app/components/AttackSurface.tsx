@@ -34,7 +34,7 @@ export default function AttackSurface({ open, documentaryStage, endpoint, connec
   const verifying = fleet?.status === 'VERIFYING';
   const complete = fleet?.status === 'COMPLETED';
 
-  return <div className={`surface attack-cockpit${open ? ' is-open' : ''}`} aria-hidden={!open} inert={!open}>
+  return <div className={`surface attack-cockpit${endpoint ? ' is-control-driven' : ''}${open ? ' is-open' : ''}`} aria-hidden={!open} inert={!open}>
     <div className="surface-dim" onClick={onClose} />
     <section className="surface-sheet cockpit-sheet" role="dialog" aria-labelledby="surface-title">
       <header className="surface-head cockpit-head"><div><p>{EXPERIENCE.brand.kicker}</p><h2 id="surface-title">{EXPERIENCE.brand.title}</h2><blockquote>{EXPERIENCE.brand.thesis}</blockquote></div><div className="surface-head-actions"><span className={`range-state is-${connection}`}>{connection}</span><span className={`fleet-state is-${(fleet?.status ?? 'detached').toLowerCase()}`}>{fleet?.status ?? 'FLEET DETACHED'}</span><button type="button" onClick={onClose}>Close</button></div></header>

@@ -17,12 +17,14 @@ function isFiniteNumber(value: number | undefined): value is number {
 export default function Home() {
   const reduced = usePrefersReducedMotion();
   const [intro, setIntro] = useState(!reduced);
-  const [stage, setStage] = useState(0);
+  const [replayStage, setReplayStage] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [defenseOpen, setDefenseOpen] = useState(false);
   const [surfaceOpen, setSurfaceOpen] = useState(false);
   const openedLiveCockpit = useRef(false);
   const range = useRangeTelemetry();
+  const controlled = Boolean(range.endpoint);
+  const stage = controlled ? deriveSceneIndex(range.state) : replayStage;
   const current = STAGES[stage];
   const livePhysical = range.state?.telemetry['process.pressure.psi'];
   const liveOperator = range.state?.telemetry['operator.pressure.psi'];
@@ -31,17 +33,17 @@ export default function Home() {
   const operatorPressure = useLiveTelemetry ? liveOperator : current.fallbackOperatorPressurePsi;
 
   useEffect(() => {
-    if (!playing || intro) return;
+    if (!playing || intro || controlled) return;
     const timer = window.setTimeout(() => {
       const terminal = current.activation.statuses?.some((status) => status === 'COMPLETED' || status === 'ESCALATED');
       if (terminal || stage >= STAGES.length - 1) {
         setPlaying(false);
         return;
       }
-      setStage((value) => Math.min(STAGES.length - 1, value + 1));
+      setReplayStage((value) => Math.min(STAGES.length - 1, value + 1));
     }, STAGES[stage].durationMs);
     return () => window.clearTimeout(timer);
-  }, [playing, stage, intro, current.activation.statuses]);
+  }, [playing, stage, intro, current.activation.statuses, controlled]);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -50,22 +52,21 @@ export default function Home() {
         else if (intro) setIntro(false);
         return;
       }
-      if (defenseOpen || event.target instanceof HTMLInputElement) return;
+      if (defenseOpen || controlled || event.target instanceof HTMLInputElement) return;
       if (event.key === ' ' && !intro) {
         event.preventDefault();
         setPlaying((value) => !value);
       }
-      if (event.key === 'ArrowRight') setStage((value) => Math.min(STAGES.length - 1, value + 1));
-      if (event.key === 'ArrowLeft') setStage((value) => Math.max(0, value - 1));
+      if (event.key === 'ArrowRight') setReplayStage((value) => Math.min(STAGES.length - 1, value + 1));
+      if (event.key === 'ArrowLeft') setReplayStage((value) => Math.max(0, value - 1));
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [defenseOpen, intro]);
+  }, [defenseOpen, intro, controlled]);
 
   useEffect(() => {
     if (range.connection !== 'online' || !range.state) return;
     const timer = window.setTimeout(() => {
-      setStage(deriveSceneIndex(range.state));
       if (!openedLiveCockpit.current) {
         openedLiveCockpit.current = true;
         setIntro(false);
@@ -99,19 +100,20 @@ export default function Home() {
       {!intro && (
         <FilmOverlay
           stage={stage}
+          controlled={controlled}
           playing={playing}
           operatorPressure={operatorPressure}
           physicalPressure={physicalPressure}
           log={current.log}
           onPlay={() => setPlaying((value) => !value)}
           onReset={() => {
-            setStage(0);
+            setReplayStage(0);
             setPlaying(false);
           }}
-          onAdvance={() => setStage((value) => Math.min(STAGES.length - 1, value + 1))}
+          onAdvance={() => setReplayStage((value) => Math.min(STAGES.length - 1, value + 1))}
           onStage={(index) => {
             setPlaying(false);
-            setStage(index);
+            setReplayStage(index);
           }}
           onDefend={() => setDefenseOpen(true)}
           onInspect={() => setSurfaceOpen(true)}

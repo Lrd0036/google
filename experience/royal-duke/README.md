@@ -56,9 +56,9 @@ The site is an eleven-scene guided attack and response on a graded satellite glo
 
 1. The camera flies from orbit into Ashburn / Sterling (Data Center Alley).
 2. Paper beacons mark real Loudoun halls; scenario overlays mark Royal Duke HQ, the water plant, and vendor access.
-3. Play the briefing, or jump scenes. Operator and physical pressure split only after P-101 is de-energized.
+3. In detached mode, play the briefing or jump scenes. Once attached, the chapter controls lock and the Control Panel becomes the only driver of the map.
 4. **Runbook & authority** shows the deterministic, compiled-action, and human-approval boundaries.
-5. **Attack surface** becomes the live cockpit when `?range=` attaches the site to OT-sim and the defensive fleet.
+5. **Control panel** becomes the live cockpit when `?range=` attaches the site to OT-sim and the defensive fleet.
 
 Reduced-motion browsers skip the intro fly and autoplay.
 
@@ -131,7 +131,8 @@ camera shots, map propagation, thresholds, campaign counts, agent labels,
 runbook authority steps, and evidence labels. `app/lib/scenario.ts` validates and
 adapts that contract for the UI. When the range is attached, visible scene is
 derived from completed actions, defensive state, and fleet status—not from an
-independent presentation clock.
+independent presentation clock. A server-sent event stream pushes those states
+and physical telemetry to the browser at visual cadence.
 
 ---
 
@@ -267,7 +268,7 @@ loudoun_data_centers.json  Public OSM-derived hall list
 The documentary map and cockpit are projections of the same
 `range/royal-duke/scenario.json`. When `?range=` is healthy, operator and
 physical PSI come from OT-sim, while the visible scene follows proven action and
-fleet state.
+fleet state delivered by the Control stream.
 
 ---
 
@@ -297,12 +298,12 @@ Satellite imagery: Esri, Maxar, Earthstar Geographics. Building extrusions: Open
 
 | Key | Action |
 | --- | --- |
-| `Space` | Play / pause the briefing |
-| `→` | Advance one scene |
-| `←` | Go back one scene |
+| `Space` | Play / pause the detached briefing |
+| `→` | Advance one scene while detached |
+| `←` | Go back one scene while detached |
 | `Esc` | Skip intro, or close Runbook / Attack surface |
 
-On-screen: **Play briefing**, **Advance**, scene rail, **Runbook & authority**, **Attack surface**.
+On-screen while detached: **Play briefing**, **Advance**, scene rail, **Runbook & authority**, **Control panel**. Attached mode replaces the transport with `CONTROL STREAM · LIVE`.
 
 ---
 
