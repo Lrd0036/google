@@ -1,0 +1,197 @@
+
+<style>
+@keyframes atk-flow { to { stroke-dashoffset: -28; } }
+.atk { stroke-dasharray:8 5; stroke:#E24B4A; stroke-width:2.5; fill:none; animation:atk-flow .65s linear infinite; }
+.atk.off { animation-play-state:paused; opacity:0; transition:opacity .3s; }
+.cip { transition:opacity .25s; }
+.cip.off { opacity:0; }
+</style>
+
+<div style="padding:.5rem 0">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px">
+    <div style="font-size:12px;font-weight:500;color:var(--color-text-danger);padding:5px 10px;background:var(--color-background-danger);border-radius:var(--border-radius-md);text-align:center">✕ Vulnerable — flat network</div>
+    <div style="font-size:12px;font-weight:500;color:var(--color-text-success);padding:5px 10px;background:var(--color-background-success);border-radius:var(--border-radius-md);text-align:center">✓ Hardened — segmented</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+
+    <!-- LEFT: Vulnerable -->
+    <svg width="100%" viewBox="0 0 300 490" style="border:0.5px solid var(--color-border-tertiary);border-radius:8px;display:block">
+      <defs>
+        <marker id="al" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- Internet zone -->
+      <rect x="0" y="0" width="300" height="74" rx="8" fill="var(--color-background-secondary)"/>
+      <text x="8" y="14" dominant-baseline="hanging" style="font-size:11px;fill:var(--color-text-tertiary);font-family:var(--font-sans)">Internet / WAN</text>
+      <rect x="45" y="18" width="210" height="42" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text x="150" y="35" text-anchor="middle" dominant-baseline="central" style="font-size:13px;font-weight:500;fill:var(--color-text-primary);font-family:var(--font-sans)">Vendor portal</text>
+      <text x="150" y="52" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-danger);font-family:var(--font-sans)">Shared VPN · no MFA</text>
+
+      <!-- No firewall — just open -->
+      <text x="150" y="84" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-danger);font-family:var(--font-sans)">— no firewall boundary —</text>
+
+      <!-- Flat IT/OT zone -->
+      <rect x="0" y="74" width="300" height="268" fill="var(--color-background-danger)" fill-opacity="0.07"/>
+      <text x="8" y="98" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-danger);font-family:var(--font-sans)">Flat IT / OT — no segmentation</text>
+
+      <!-- SCADA/HMI -->
+      <line x1="150" y1="60" x2="150" y2="102" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#al)"/>
+      <rect x="45" y="102" width="210" height="42" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text x="150" y="119" text-anchor="middle" dominant-baseline="central" style="font-size:13px;font-weight:500;fill:var(--color-text-primary);font-family:var(--font-sans)">SCADA / HMI</text>
+      <text x="150" y="136" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-secondary);font-family:var(--font-sans)">Royal Duke control systems</text>
+
+      <!-- Historian -->
+      <line x1="150" y1="144" x2="150" y2="156" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#al)"/>
+      <rect x="45" y="156" width="210" height="42" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text x="150" y="173" text-anchor="middle" dominant-baseline="central" style="font-size:13px;font-weight:500;fill:var(--color-text-primary);font-family:var(--font-sans)">Historian / data store</text>
+      <text x="150" y="190" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-secondary);font-family:var(--font-sans)">Unmonitored · unprotected</text>
+
+      <!-- Eng workstation -->
+      <line x1="150" y1="198" x2="150" y2="210" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#al)"/>
+      <rect x="45" y="210" width="210" height="42" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text x="150" y="227" text-anchor="middle" dominant-baseline="central" style="font-size:13px;font-weight:500;fill:var(--color-text-primary);font-family:var(--font-sans)">Eng. workstation</text>
+      <text x="150" y="244" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-secondary);font-family:var(--font-sans)">Same segment as PLCs</text>
+
+      <!-- PLCs / RTUs -->
+      <line x1="150" y1="252" x2="150" y2="264" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#al)"/>
+      <rect x="45" y="264" width="210" height="42" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text x="150" y="281" text-anchor="middle" dominant-baseline="central" style="font-size:13px;font-weight:500;fill:var(--color-text-primary);font-family:var(--font-sans)">PLCs / RTUs</text>
+      <text x="150" y="298" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-secondary);font-family:var(--font-sans)">Pumps · valves · substations</text>
+
+      <!-- Physical zone -->
+      <rect x="0" y="342" width="300" height="148" rx="8" fill="var(--color-background-secondary)" fill-opacity="0.6"/>
+      <text x="8" y="356" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-tertiary);font-family:var(--font-sans)">Physical infrastructure → customers</text>
+
+      <!-- Fork from PLCs -->
+      <path d="M150 306 L150 366 L70 366 L70 374" fill="none" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#al)"/>
+      <path d="M150 306 L150 366 L230 366 L230 374" fill="none" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#al)"/>
+
+      <rect x="10" y="374" width="120" height="42" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text x="70" y="391" text-anchor="middle" dominant-baseline="central" style="font-size:12px;font-weight:500;fill:var(--color-text-primary);font-family:var(--font-sans)">Substation</text>
+      <text x="70" y="407" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-secondary);font-family:var(--font-sans)">Electric grid</text>
+
+      <rect x="170" y="374" width="120" height="42" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text x="230" y="391" text-anchor="middle" dominant-baseline="central" style="font-size:12px;font-weight:500;fill:var(--color-text-primary);font-family:var(--font-sans)">Water plant</text>
+      <text x="230" y="407" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-secondary);font-family:var(--font-sans)">Cooling supply</text>
+
+      <line x1="70" y1="416" x2="70" y2="428" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#al)"/>
+      <line x1="230" y1="416" x2="230" y2="428" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#al)"/>
+
+      <rect x="10" y="428" width="280" height="42" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text x="150" y="445" text-anchor="middle" dominant-baseline="central" style="font-size:12px;font-weight:500;fill:var(--color-text-primary);font-family:var(--font-sans)">Data centers (NoVA)</text>
+      <text x="150" y="462" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-secondary);font-family:var(--font-sans)">Loudoun · Prince William · Fairfax</text>
+
+      <!-- Attack path -->
+      <path class="atk" d="M150 60 L150 462"/>
+    </svg>
+
+    <!-- RIGHT: Hardened -->
+    <svg width="100%" viewBox="0 0 300 490" style="border:0.5px solid var(--color-border-tertiary);border-radius:8px;display:block">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- Internet zone -->
+      <rect x="0" y="0" width="300" height="74" rx="8" fill="var(--color-background-secondary)"/>
+      <text x="8" y="14" dominant-baseline="hanging" style="font-size:11px;fill:var(--color-text-tertiary);font-family:var(--font-sans)">Internet / WAN</text>
+      <rect x="45" y="18" width="198" height="42" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text x="144" y="35" text-anchor="middle" dominant-baseline="central" style="font-size:13px;font-weight:500;fill:var(--color-text-primary);font-family:var(--font-sans)">Vendor portal</text>
+      <text x="144" y="52" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-success);font-family:var(--font-sans)">MFA enforced · logged</text>
+      <g class="cip">
+        <rect x="248" y="18" width="44" height="16" rx="8" fill="var(--color-background-warning)"/>
+        <text x="270" y="26" text-anchor="middle" dominant-baseline="central" style="font-size:11px;font-weight:500;fill:var(--color-text-warning);font-family:var(--font-sans)">CIP-007</text>
+      </g>
+      <g class="cip">
+        <rect x="248" y="38" width="44" height="16" rx="8" fill="var(--color-background-warning)"/>
+        <text x="270" y="46" text-anchor="middle" dominant-baseline="central" style="font-size:11px;font-weight:500;fill:var(--color-text-warning);font-family:var(--font-sans)">CIP-013</text>
+      </g>
+
+      <!-- Firewall 1 -->
+      <line x1="10" y1="74" x2="290" y2="74" stroke="var(--color-border-info)" stroke-width="1.5"/>
+      <text x="88" y="85" text-anchor="middle" dominant-baseline="central" style="font-size:11px;font-weight:500;fill:var(--color-text-info);font-family:var(--font-sans)">ESP · Firewall 1</text>
+      <g class="cip">
+        <rect x="176" y="67" width="44" height="16" rx="8" fill="var(--color-background-info)"/>
+        <text x="198" y="75" text-anchor="middle" dominant-baseline="central" style="font-size:11px;font-weight:500;fill:var(--color-text-info);font-family:var(--font-sans)">CIP-005</text>
+      </g>
+
+      <!-- IT zone -->
+      <rect x="0" y="74" width="300" height="86" fill="var(--color-background-info)" fill-opacity="0.07"/>
+      <text x="8" y="92" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-info);font-family:var(--font-sans)">Corporate IT zone</text>
+      <line x1="150" y1="60" x2="150" y2="100" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#ar)"/>
+      <rect x="45" y="100" width="210" height="42" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text x="150" y="117" text-anchor="middle" dominant-baseline="central" style="font-size:13px;font-weight:500;fill:var(--color-text-primary);font-family:var(--font-sans)">Corporate IT systems</text>
+      <text x="150" y="134" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-secondary);font-family:var(--font-sans)">Email · apps · isolated</text>
+
+      <!-- OT DMZ zone -->
+      <rect x="0" y="160" width="300" height="78" fill="var(--color-background-warning)" fill-opacity="0.1"/>
+      <text x="8" y="174" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-warning);font-family:var(--font-sans)">OT DMZ — monitored</text>
+      <line x1="150" y1="142" x2="150" y2="176" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#ar)"/>
+      <rect x="45" y="176" width="210" height="42" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text x="150" y="193" text-anchor="middle" dominant-baseline="central" style="font-size:13px;font-weight:500;fill:var(--color-text-primary);font-family:var(--font-sans)">Jump server / PAM</text>
+      <text x="150" y="210" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-secondary);font-family:var(--font-sans)">Passive OT monitoring</text>
+      <g class="cip">
+        <rect x="248" y="190" width="44" height="16" rx="8" fill="var(--color-background-warning)"/>
+        <text x="270" y="198" text-anchor="middle" dominant-baseline="central" style="font-size:11px;font-weight:500;fill:var(--color-text-warning);font-family:var(--font-sans)">CIP-015</text>
+      </g>
+
+      <!-- Firewall 2 -->
+      <line x1="10" y1="238" x2="290" y2="238" stroke="var(--color-border-info)" stroke-width="1.5"/>
+      <text x="88" y="249" text-anchor="middle" dominant-baseline="central" style="font-size:11px;font-weight:500;fill:var(--color-text-info);font-family:var(--font-sans)">ESP · Firewall 2</text>
+      <g class="cip">
+        <rect x="176" y="231" width="44" height="16" rx="8" fill="var(--color-background-info)"/>
+        <text x="198" y="239" text-anchor="middle" dominant-baseline="central" style="font-size:11px;font-weight:500;fill:var(--color-text-info);font-family:var(--font-sans)">CIP-005</text>
+      </g>
+      <line x1="150" y1="218" x2="150" y2="238" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#ar)"/>
+
+      <!-- OT Control zone -->
+      <rect x="0" y="238" width="300" height="130" fill="var(--color-background-success)" fill-opacity="0.07"/>
+      <text x="8" y="254" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-success);font-family:var(--font-sans)">OT control zone — isolated</text>
+      <line x1="150" y1="250" x2="150" y2="262" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#ar)"/>
+      <rect x="45" y="262" width="210" height="42" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text x="150" y="279" text-anchor="middle" dominant-baseline="central" style="font-size:13px;font-weight:500;fill:var(--color-text-primary);font-family:var(--font-sans)">SCADA / HMI</text>
+      <text x="150" y="296" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-secondary);font-family:var(--font-sans)">Royal Duke control systems</text>
+
+      <line x1="150" y1="304" x2="150" y2="316" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#ar)"/>
+      <rect x="45" y="316" width="210" height="42" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text x="150" y="333" text-anchor="middle" dominant-baseline="central" style="font-size:13px;font-weight:500;fill:var(--color-text-primary);font-family:var(--font-sans)">PLCs / RTUs</text>
+      <text x="150" y="350" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-secondary);font-family:var(--font-sans)">Pumps · valves · substations</text>
+
+      <!-- Physical zone -->
+      <rect x="0" y="368" width="300" height="122" rx="8" fill="var(--color-background-secondary)" fill-opacity="0.6"/>
+      <text x="8" y="382" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-tertiary);font-family:var(--font-sans)">Physical infrastructure → customers</text>
+
+      <!-- Fork from PLCs -->
+      <path d="M150 358 L150 390 L70 390 L70 396" fill="none" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#ar)"/>
+      <path d="M150 358 L150 390 L230 390 L230 396" fill="none" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#ar)"/>
+
+      <rect x="10" y="396" width="120" height="42" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text x="70" y="413" text-anchor="middle" dominant-baseline="central" style="font-size:12px;font-weight:500;fill:var(--color-text-primary);font-family:var(--font-sans)">Substation</text>
+      <text x="70" y="429" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-secondary);font-family:var(--font-sans)">Electric grid</text>
+
+      <rect x="170" y="396" width="120" height="42" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text x="230" y="413" text-anchor="middle" dominant-baseline="central" style="font-size:12px;font-weight:500;fill:var(--color-text-primary);font-family:var(--font-sans)">Water plant</text>
+      <text x="230" y="429" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-secondary);font-family:var(--font-sans)">Cooling supply</text>
+
+      <line x1="70" y1="438" x2="70" y2="448" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#ar)"/>
+      <line x1="230" y1="438" x2="230" y2="448" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#ar)"/>
+
+      <rect x="10" y="448" width="280" height="34" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text x="150" y="462" text-anchor="middle" dominant-baseline="central" style="font-size:12px;font-weight:500;fill:var(--color-text-primary);font-family:var(--font-sans)">Data centers (NoVA)</text>
+      <text x="150" y="476" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:var(--color-text-secondary);font-family:var(--font-sans)">Loudoun · Prince William · Fairfax</text>
+    </svg>
+  </div>
+
+  <div style="display:flex;gap:20px;padding:8px 0 2px;font-size:13px;color:var(--color-text-secondary)">
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+      <input type="checkbox" checked onchange="document.querySelectorAll('.atk').forEach(e=>e.classList.toggle('off',!this.checked))"> Attack path
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+      <input type="checkbox" checked onchange="document.querySelectorAll('.cip').forEach(e=>e.classList.toggle('off',!this.checked))"> NERC CIP overlays
+    </label>
+  </div>
+</div>

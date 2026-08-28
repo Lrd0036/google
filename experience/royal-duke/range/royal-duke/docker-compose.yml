@@ -1,0 +1,79 @@
+name: royal-duke-range
+
+x-ot-sim: &ot-sim
+  image: ghcr.io/patsec/ot-sim@sha256:35a4f4419ce10ce747d295a4f0d292a14f68c3b70b5eabfd7eb54f37c5d28a18
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+  process-plc:
+    <<: *ot-sim
+    container_name: royal-duke-process-plc
+    volumes:
+      - ./config/process-plc.xml:/etc/ot-sim/config.xml:ro
+    networks:
+      - control
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9101/api/v1/query/process.pressure.psi"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  operator-gateway:
+    <<: *ot-sim
+    container_name: royal-duke-operator-gateway
+    depends_on:
+      process-plc:
+        condition: service_healthy
+    volumes:
+      - ./config/operator-gateway.xml:/etc/ot-sim/config.xml:ro
+    networks:
+      - control
+      - supervisory
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9101/api/v1/query/operator.pressure.psi"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  range-controller:
+    image: node:22.22.0-alpine3.23
+    container_name: royal-duke-range-controller
+    restart: unless-stopped
+    depends_on:
+      operator-gateway:
+        condition: service_healthy
+    command: ["node", "/app/server.mjs"]
+    environment:
+      PORT: "9400"
+      GATEWAY_API: http://operator-gateway:9101/api/v1
+      PROCESS_API: http://process-plc:9101/api/v1
+      SCENARIO_PATH: /app/scenario.json
+    volumes:
+      - ./controller/server.mjs:/app/server.mjs:ro
+      - ./scenario.json:/app/scenario.json:ro
+    ports:
+      - 127.0.0.1:9400:9400
+    networks:
+      - supervisory
+      - control
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9400/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+networks:
+  control:
+    internal: true
+  supervisory: {}
