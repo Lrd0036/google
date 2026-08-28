@@ -1,0 +1,339 @@
+# Royal Duke Cyber Range
+
+**Auburn AIS** · *When the Brainstem Bleeds*
+
+An interactive cyber-physical briefing. A vendor session becomes an engineering path, an engineering path becomes a falsified operator view, and a falsified view becomes a pump command. Cooling fails. Data Center Alley goes dark.
+
+The map is a documentary. The optional Docker range is a live process model. Neither one is a production plant.
+
+[Attack surface](#attack-surface--fidelity) · [Live OT range](#live-ot-range)
+
+```
+VENDOR ──► ENTERPRISE / EMS ──► WATER PLC ──► 69 LOUDOUN HALLS
+  01            02–03               04               05
+identity      path + lie         coil write      physics
+```
+
+---
+
+## Contents
+
+- [Premise](#premise)
+- [Watch it](#watch-it)
+- [Quick start](#quick-start)
+- [The night, chapter by chapter](#the-night-chapter-by-chapter)
+- [What is real](#what-is-real)
+- [Defend the plant](#defend-the-plant)
+- [Attack surface & fidelity](#attack-surface--fidelity)
+- [Live OT range](#live-ot-range)
+- [Architecture](#architecture)
+- [Repository map](#repository-map)
+- [Data](#data)
+- [Keyboard](#keyboard)
+- [Security](#security)
+- [Stack](#stack)
+- [Credits](#credits)
+
+---
+
+## Premise
+
+Northern Virginia’s digital load does not live on the internet. It lives on power, water, and a room the public never sees. 
+
+Royal Duke is that room: a fictional energy-management and cooling operator sitting in Loudoun County. The film follows one night in which a trusted vendor session is treated as an employee, the engineering enclave becomes reachable, the HMI is frozen at **62 PSI**, and an allowlisted write de-energizes pump **P-101**. Independent telemetry falls through **52 PSI**. Campus cooling trips. Sixty-nine public data-center halls go dark on the map.
+
+If you know me, you know how much I hate network. Unfortunately, network is how stuff like this happens. I love to say "I don't care about network security" but how do you get access to systems that can manifest an attack in... reality? 
+
+---
+
+## Watch it
+
+The site is a six-chapter film on a graded satellite globe.
+
+1. The camera flies from orbit into Ashburn / Sterling (Data Center Alley).
+2. Paper beacons mark real Loudoun halls; scenario overlays mark Royal Duke HQ, the water plant, and vendor access.
+3. Play the briefing, or jump chapters. Operator PSI and physical PSI split when the lie begins.
+4. **Defend** spends a $500,000 control budget and replays the same night.
+5. **Attack surface** shows the modeled hops. Attach `?range=` to replace the documentary pressures with live OT-sim telemetry.
+
+Reduced-motion browsers skip the intro fly and autoplay.
+
+---
+
+## Quick start
+
+Requires **Node 22.13+**. Docker is optional and only needed for the live process model.
+
+```sh
+git clone https://github.com/Lrd0036/SCLC.git
+cd SCLC
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+That is the film. To attach the executable range:
+
+```sh
+npm run range:up
+npm run range:smoke
+```
+
+Then open [http://localhost:3000/?range=http://127.0.0.1:9400](http://localhost:3000/?range=http://127.0.0.1:9400).
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Vinext / Vite dev server on port 3000 |
+| `npm run build` | Production build |
+| `npm run start` | Serve the production build |
+| `npm run lint` | ESLint |
+| `npm run range:up` | Start the isolated OT-sim stack |
+| `npm run range:down` | Stop the stack (keeps pinned files) |
+| `npm run range:smoke` | Prove pump write, frozen HMI, and low-pressure alarm |
+
+Copy `.env.example` to `.env.local` only if you need to override range CORS. The site does not require API keys.
+
+---
+
+## The night, chapter by chapter
+
+| | Chapter | Gate | What you should notice |
+| --- | --- | --- | --- |
+| **00** | Normal operations | Baseline | P-101 at 62 PSI. Alarm queue empty. Halls are paper-white. |
+| **01** | The Open Window | Identity | A vendor session is accepted as a person. MFA is not enforced. |
+| **02** | The Pivot | Path + knowledge | The brokered session reaches the engineering enclave. Station trust and the controller project are known. Only now is the live Modbus gateway meaningful. |
+| **03** | The Illusion | Integrity | Operator glass still reads 62.0. Independent telemetry does not. |
+| **04** | The Physics Breach | Control | An allowlisted gateway update crosses live Modbus TCP. The coil changes. Flow falls. |
+| **05** | The Fallout | Physics | Cooling reserve is gone. Veins fan from the water plant across 69 Loudoun halls. |
+
+```mermaid
+flowchart LR
+  A["00 Baseline"] --> B["01 Identity"]
+  B --> C["02 Path + project"]
+  C --> D["03 Frozen HMI"]
+  D --> E["04 Coil write"]
+  E --> F["05 Fallout"]
+```
+
+Documentary timings live in `app/lib/scenario.ts`. Live-range stages live in `range/royal-duke/scenario.json`. When the range is attached, the film follows proven controller stage, not the autoplay clock.
+
+---
+
+## What is real
+
+Honesty is part of the exhibit.
+
+| Layer | Status | Source |
+| --- | --- | --- |
+| 69 Loudoun data-center buildings | **Public map centroids** | `loudoun_data_centers.json` (OSM-derived, not survey-grade) |
+| Operator names / site codes | **Directory metadata** | Cross-checked public labels; not an authoritative inventory |
+| Royal Duke HQ, water plant, vendor office | **Scenario overlay** | Placed in Loudoun, off real hall centroids |
+| Substations, utility ingress, security perimeters | **Not mapped** | Intentionally absent from the JSON |
+| Pump, pressure, flow, HMI freeze | **Live in Docker** | OT-sim Modbus + DNP3, first-order water model |
+| Siemens S7 | **Interface contract** | Trust, project context, and change authority — not firmware, no TCP/102 |
+| Production plants, real credentials, real PLC writes | **Out of scope** | Never included |
+
+Facility coordinates are visualization and research data. They are not ingress points.
+
+---
+
+## Defend the plant
+
+**Defend** opens a $500,000 investigation file. Controls do not change the attacker’s path. They choose *where the path dies* on replay.
+
+| Control | Cost | Stops |
+| --- | --- | --- |
+| Vendor MFA + just-in-time access | $30,000 | 01 |
+| Recorded privileged sessions | $120,000 | 01 |
+| OT DMZ + security perimeter | $180,000 | 02 |
+| Historian integrity monitoring | $120,000 | 03 |
+| Independent process telemetry | $80,000 | 03 |
+| PLC allow-listing + safety logic | $90,000 | 04 |
+
+Spend cannot exceed the cap. Replay jumps to the earliest funded break. Pressure stays inside the design envelope (58–64 PSI on the film; 62 PSI held on the live model). The evidence notebook records which chapter still has no control.
+
+---
+
+## Attack surface & fidelity
+
+**Attack surface** is the legend for the executable model: hops, required authority, and what is actually implemented.
+
+```mermaid
+flowchart LR
+  V["Vendor broker"] -->|"brokered HTTPS"| E["Engineering workstation"]
+  E -.->|"S7 contract · not a listener"| P["Process PLC"]
+  G["Operator gateway"] -->|"Modbus TCP/502 · live"| P
+  G -->|"DNP3 TCP/20000 · live"| E
+  P -->|"message bus"| W["Cooling process"]
+  W --> L["Loudoun load"]
+```
+
+Reachability is one gate. The chain also requires:
+
+1. An attributable, expiring vendor session
+2. A brokered path into the engineering enclave
+3. Controller project context and station trust
+4. Operator-view authority (the frozen 62 PSI lie)
+5. Controller-write authority (allowlisted coil change)
+6. Independent evidence that process pressure crossed 52 PSI
+
+The HTTP controller accepts **only** those six actions. It does not expose a shell, scanner, packet builder, or arbitrary tag-write route.
+
+Deeper notes: [`range/royal-duke/README.md`](range/royal-duke/README.md).
+
+---
+
+## Live OT range
+
+Protocol services stay on Docker networks. Only the allowlisted controller is published, and only on **127.0.0.1:9400**.
+
+```mermaid
+flowchart TB
+  subgraph host [Your machine]
+    Film["localhost:3000"]
+    Ctrl["127.0.0.1:9400"]
+  end
+  subgraph docker [Docker]
+    subgraph supervisory [supervisory net]
+      CtrlC[range-controller]
+      GW[operator-gateway]
+    end
+    subgraph control [control net · internal]
+      PLC[process-plc]
+    end
+  end
+  Film -->|"?range="| Ctrl
+  Ctrl --> CtrlC
+  CtrlC --> GW
+  GW -->|"Modbus TCP"| PLC
+```
+
+| Service | Role |
+| --- | --- |
+| `process-plc` | OT-sim logic + live Modbus TCP. Pump, pressure, flow, reservoir, alarms, optional safety interlock. |
+| `operator-gateway` | Polls the PLC over live Modbus, projects operator pressure, serves DNP3. |
+| `range-controller` | Node allowlist over `scenario.json`. CORS locked to localhost and the published site. |
+
+Image pin: `ghcr.io/patsec/ot-sim@sha256:35a4f4419ce10ce747d295a4f0d292a14f68c3b70b5eabfd7eb54f37c5d28a18` ([OT-sim](https://github.com/patsec/ot-sim) `f12dfd55`, GPL-3.0). Containers drop all capabilities and start with `no-new-privileges`.
+
+Smoke test after `range:up`:
+
+```sh
+npm run range:smoke
+```
+
+It resets the model, walks the five writable actions, waits for physical pressure to cross 52 PSI, and asserts that the operator view remained frozen at 62 PSI.
+
+---
+
+## Architecture
+
+```
+app/
+  page.tsx                 Film state, keyboard, live-telemetry handoff
+  components/
+    DocumentaryMap.tsx     MapLibre globe, camera shots, site labels
+    FilmOverlay.tsx        HUD, chapters, transport
+    TitleSequence.tsx      Opening titles
+    DefenseBrief.tsx       $500K control planner
+    AttackSurface.tsx      OT hops + live actions
+  lib/
+    scenario.ts            Chapters, nodes, edges, defenses, cameras
+    loudoun.ts             69 public hall centroids
+    nervous-system.ts      Veins, packets, pulse rings
+    beacon-layer.ts        Three.js monuments on the map GL context
+    map-style.ts           Graded Esri satellite + fallback
+    useRangeTelemetry.ts   Optional ?range= attachment
+range/royal-duke/
+  scenario.json            Executable attack-surface model
+  docker-compose.yml       Isolated OT-sim stack
+  config/                  PLC + gateway XML
+  controller/              Allowlisted HTTP API
+loudoun_data_centers.json  Public OSM-derived hall list
+```
+
+The documentary map is a projection of `app/lib/scenario.ts`. When `?range=` is healthy, operator and physical PSI come from OT-sim, and chapter index follows proven controller stage.
+
+---
+
+## Repository map
+
+| Path | Why it exists |
+| --- | --- |
+| `app/` | The film |
+| `range/royal-duke/` | The process model |
+| `range/vendor/` | Optional upstream OT-sim checkout — **gitignored**; the compose file pins the image |
+| `loudoun_data_centers.json` | Public hall centroids |
+| `.env.example` | Safe env template (no secrets) |
+
+---
+
+## Data
+
+`loudoun_data_centers.json` lists publicly identifiable Loudoun County data-center buildings. Coordinates are OpenStreetMap-derived facility centroids. They are not survey-grade. The file does not include utility ingress, substations, internal routes, or security infrastructure.
+
+On the map, six halls carry labels so the alley stays readable: Equinix DC2, Amazon IAD71, Digital Realty IAD35, Vantage VA12, Amazon IAD140, Centersquare IAD1-A. The rest render as load beacons.
+
+Satellite imagery: Esri, Maxar, Earthstar Geographics. Building extrusions: OpenFreeMap.
+
+---
+
+## Keyboard
+
+| Key | Action |
+| --- | --- |
+| `Space` | Play / pause the briefing |
+| `→` | Advance one chapter |
+| `←` | Go back one chapter |
+| `Esc` | Skip intro, or close Defend / Attack surface |
+
+On-screen: **Play briefing**, **Advance**, chapter rail, **Defend**, **Attack surface**.
+
+---
+
+## Security
+
+This is a defensive exhibit. It is not a targeting aid and not a packager of exploits. 
+
+- Do not commit `.env`, `.dev.vars`, keys, or certs. See `.gitignore`.
+- The range controller binds on the host as `127.0.0.1:9400` only.
+- CORS defaults to `localhost:3000` and the published site. Override with `ALLOWED_ORIGINS` if you must; keep it tight.
+- Responses send `X-Content-Type-Options: nosniff`, a strict referrer policy, and a camera/mic/geolocation permissions policy.
+- OT protocol ports are not published to the host.
+
+If you attach a range URL, it must be `http:` or `https:`. The film will not follow other schemes.
+
+---
+
+## Stack
+
+| Layer | Choice |
+| --- | --- |
+| Film | React 19, Next 16 app router on Vinext / Vite |
+| Motion | GSAP chapter titles, reduced-motion aware |
+| Globe | MapLibre GL with a 3D globe projection |
+| Beacons | Three.js custom layer on the map GL context |
+| Type | Share Tech Mono |
+| Range | OT-sim (Modbus TCP, DNP3 TCP) + Node controller |
+---
+
+## Credits
+
+Auburn AIS · Royal Duke Cyber Range
+
+Process model built on [OT-sim](https://github.com/patsec/ot-sim) (GPL-3.0). Hall locations compiled from public mapping directories. Royal Duke, the water plant, and the vendor site are a scenario overlay.
+
+The documentary map is a projection. Production topology, Siemens firmware behavior, and real facility control authority are outside its evidence boundary.
+
+Also, **Countdown to Zero Day: Stuxnet and the Launch of the World's First Digital Weapon** was an excellent read, and this is mostly where I got the idea from. 
+
+Are we ever going to stop hearing about Seimens devices being vulnerable? 
+
+Probably not. Goes for all ICS. ¯\_(ツ)_/¯ was the business need to be secure, or was it to get power and water to locations? 
+
+Is Royal Duke an absolutely, 100% made up company? Yes. 
+
+However, is this a realistic attack scenario? I don't know. Go read Coundown to Zero Day, or I guess go read one of the ICS statements that CISA bombards us with. 
+
+I know everyone's tired of it, but here's a recent CISA advisory about this. (https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-231a)

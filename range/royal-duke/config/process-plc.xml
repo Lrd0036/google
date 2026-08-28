@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ot-sim>
+  <message-bus>
+    <pull-endpoint>tcp://127.0.0.1:1234</pull-endpoint>
+    <pub-endpoint>tcp://127.0.0.1:5678</pub-endpoint>
+  </message-bus>
+  <cpu>
+    <api-endpoint>0.0.0.0:9101</api-endpoint>
+    <module name="backplane">ot-sim-message-bus {{config_file}}</module>
+    <module name="logic">ot-sim-logic-module {{config_file}}</module>
+    <module name="modbus">ot-sim-modbus-module {{config_file}}</module>
+  </cpu>
+  <logic name="water-process">
+    <period>500ms</period>
+    <process-updates>true</process-updates>
+    <program><![CDATA[
+      safety_intervened = safety_interlock != 0 && pressure < 58 && pump_command == 0
+      pump_actual = safety_intervened ? 1 : pump_command
+      pressure_target = pump_actual != 0 ? pressure_setpoint : 18
+      flow_target = pump_actual != 0 ? 11480 : 900
+      pressure = pressure + ((pressure_target - pressure) * 0.075)
+      flow = flow + ((flow_target - flow) * 0.09)
+      reservoir = reservoir + (pump_actual != 0 ? 0.008 : -0.02)
+      reservoir = reservoir > 91 ? 91 : reservoir
+      reservoir = reservoir < 12 ? 12 : reservoir
+      low_pressure_alarm = pressure < 52
+      pump_command = pump_command
+      safety_interlock = safety_interlock
+      pressure_setpoint = pressure_setpoint
+    ]]></program>
+    <variables>
+      <pump_command tag="process.pump.command">1</pump_command>
+      <pump_actual tag="process.pump.actual">1</pump_actual>
+      <safety_interlock tag="safety.interlock.enabled">0</safety_interlock>
+      <safety_intervened tag="safety.interlock.active">0</safety_intervened>
+      <pressure_setpoint tag="process.pressure.setpoint">62</pressure_setpoint>
+      <pressure_target>62</pressure_target>
+      <pressure tag="process.pressure.psi">62</pressure>
+      <flow_target>11480</flow_target>
+      <flow tag="process.flow.gpm">11480</flow>
+      <reservoir tag="process.reservoir.percent">84</reservoir>
+      <low_pressure_alarm tag="alarm.low-pressure">0</low_pressure_alarm>
+    </variables>
+  </logic>
+  <modbus name="water-plc-modbus" mode="server">
+    <endpoint>0.0.0.0:502</endpoint>
+    <register type="coil">
+      <address>0</address>
+      <tag>process.pump.command</tag>
+    </register>
+    <register type="coil">
+      <address>1</address>
+      <tag>safety.interlock.enabled</tag>
+    </register>
+    <register type="discrete">
+      <address>10001</address>
+      <tag>process.pump.actual</tag>
+    </register>
+    <register type="discrete">
+      <address>10002</address>
+      <tag>alarm.low-pressure</tag>
+    </register>
+    <register type="input">
+      <address>30001</address>
+      <tag>process.pressure.psi</tag>
+      <scaling>-1</scaling>
+    </register>
+    <register type="input">
+      <address>30002</address>
+      <tag>process.flow.gpm</tag>
+    </register>
+    <register type="input">
+      <address>30003</address>
+      <tag>process.reservoir.percent</tag>
+      <scaling>-1</scaling>
+    </register>
+    <register type="holding">
+      <address>40001</address>
+      <tag>process.pressure.setpoint</tag>
+      <scaling>-1</scaling>
+    </register>
+  </modbus>
+</ot-sim>

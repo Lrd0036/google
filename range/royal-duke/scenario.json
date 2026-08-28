@@ -1,0 +1,180 @@
+{
+  "schemaVersion": "1.0.0",
+  "modelId": "royal-duke-water-ot",
+  "title": "Royal Duke water and cooling attack-surface model",
+  "scope": "Isolated defensive cyber-range simulation. No production endpoints or credentials.",
+  "upstream": {
+    "name": "OT-sim",
+    "repository": "https://github.com/patsec/ot-sim",
+    "commit": "f12dfd55d2df830509090cd241c2dc7cfb7c8ffc",
+    "image": "ghcr.io/patsec/ot-sim@sha256:35a4f4419ce10ce747d295a4f0d292a14f68c3b70b5eabfd7eb54f37c5d28a18",
+    "license": "GPL-3.0"
+  },
+  "fidelity": {
+    "modbus": "live-protocol",
+    "dnp3": "live-protocol",
+    "s7": "interface-contract",
+    "physicalProcess": "first-order water-pressure model",
+    "note": "The S7 engineering surface models trust, asset context, and controller authority. It is not Siemens firmware and does not expose an S7 listener."
+  },
+  "zones": [
+    { "id": "vendor", "label": "Vendor boundary", "plane": "identity", "mapNode": "vendor" },
+    { "id": "enterprise", "label": "Royal Duke enterprise", "plane": "business", "mapNode": "hq" },
+    { "id": "engineering", "label": "OT engineering enclave", "plane": "engineering", "mapNode": "hq" },
+    { "id": "supervisory", "label": "Supervisory control", "plane": "operations", "mapNode": "water" },
+    { "id": "control", "label": "Controller network", "plane": "control", "mapNode": "water" },
+    { "id": "physical", "label": "Water and cooling process", "plane": "physics", "mapNode": "water" },
+    { "id": "load", "label": "Loudoun cooling load", "plane": "consequence", "mapNode": "loudoun" }
+  ],
+  "assets": [
+    {
+      "id": "vendor-access-broker",
+      "label": "Vendor access broker",
+      "zone": "vendor",
+      "role": "Creates an attributable, expiring maintenance session",
+      "implementation": "scenario-state"
+    },
+    {
+      "id": "engineering-workstation",
+      "label": "Engineering workstation",
+      "zone": "engineering",
+      "role": "Holds the controller project, station identity, and approved change path",
+      "implementation": "interface-contract"
+    },
+    {
+      "id": "operator-gateway",
+      "label": "Operator / protocol gateway",
+      "zone": "supervisory",
+      "role": "Polls Modbus process data, projects the operator view, and serves DNP3 points",
+      "implementation": "ot-sim-device",
+      "container": "operator-gateway"
+    },
+    {
+      "id": "process-plc",
+      "label": "Water process PLC",
+      "zone": "control",
+      "role": "Runs pump, pressure, flow, alarm, and optional safety-interlock logic",
+      "implementation": "ot-sim-device",
+      "container": "process-plc"
+    },
+    {
+      "id": "cooling-process",
+      "label": "Cooling water process",
+      "zone": "physical",
+      "role": "Converts pump state into pressure, flow, and low-pressure alarms",
+      "implementation": "ot-sim-logic"
+    }
+  ],
+  "surfaces": [
+    {
+      "id": "vendor-session",
+      "from": "vendor-access-broker",
+      "to": "engineering-workstation",
+      "protocol": "brokered HTTPS",
+      "port": null,
+      "fidelity": "scenario-state",
+      "requiredAuthority": "approved maintenance identity and active session"
+    },
+    {
+      "id": "s7-engineering",
+      "from": "engineering-workstation",
+      "to": "process-plc",
+      "protocol": "S7 engineering contract",
+      "port": 102,
+      "fidelity": "interface-contract",
+      "requiredAuthority": "controller project context, station trust, and program/write mode"
+    },
+    {
+      "id": "modbus-control",
+      "from": "operator-gateway",
+      "to": "process-plc",
+      "protocol": "Modbus TCP",
+      "port": 502,
+      "fidelity": "live-protocol",
+      "requiredAuthority": "gateway message-bus update mapped to an allowed coil or register"
+    },
+    {
+      "id": "dnp3-telemetry",
+      "from": "operator-gateway",
+      "to": "engineering-workstation",
+      "protocol": "DNP3 TCP",
+      "port": 20000,
+      "fidelity": "live-protocol",
+      "requiredAuthority": "isolated supervisory-network access; control uses select-before-operate"
+    },
+    {
+      "id": "process-coupling",
+      "from": "process-plc",
+      "to": "cooling-process",
+      "protocol": "OT-sim message bus",
+      "port": null,
+      "fidelity": "live-simulation",
+      "requiredAuthority": "local device backplane only"
+    }
+  ],
+  "actions": [
+    {
+      "id": "vendor_session_established",
+      "stage": 1,
+      "label": "Establish vendor maintenance session",
+      "plane": "identity",
+      "prerequisites": [],
+      "effect": "A valid remote session exists; it grants no controller authority by itself.",
+      "evidence": "access-broker session record"
+    },
+    {
+      "id": "engineering_path_resolved",
+      "stage": 2,
+      "label": "Resolve the engineering path",
+      "plane": "network",
+      "prerequisites": ["vendor_session_established"],
+      "effect": "The session can reach the engineering enclave through the approved broker path.",
+      "evidence": "broker destination and boundary-flow record"
+    },
+    {
+      "id": "controller_context_acquired",
+      "stage": 2,
+      "label": "Acquire controller project context",
+      "plane": "knowledge",
+      "prerequisites": ["engineering_path_resolved"],
+      "effect": "Station identity, controller family, project mapping, and permitted change operation are known.",
+      "evidence": "engineering-project access event"
+    },
+    {
+      "id": "operator_view_frozen",
+      "stage": 3,
+      "label": "Freeze the operator pressure view",
+      "plane": "integrity",
+      "prerequisites": ["controller_context_acquired"],
+      "effect": "The gateway holds the displayed pressure at 62 PSI while independent process telemetry remains live.",
+      "evidence": "displayed-versus-physical divergence"
+    },
+    {
+      "id": "pump_command_changed",
+      "stage": 4,
+      "label": "Change the pump command",
+      "plane": "control",
+      "prerequisites": ["operator_view_frozen"],
+      "effect": "An allowlisted gateway update crosses live Modbus TCP and de-energizes the simulated pump.",
+      "evidence": "gateway update, Modbus coil write, PLC state transition"
+    },
+    {
+      "id": "low_pressure_observed",
+      "stage": 5,
+      "label": "Observe low-pressure consequence",
+      "plane": "physics",
+      "prerequisites": ["pump_command_changed"],
+      "condition": "process.pressure.psi < 52",
+      "effect": "The model records a physical consequence only after simulated pressure crosses the alarm threshold.",
+      "evidence": "independent process pressure and alarm point"
+    }
+  ],
+  "controls": [
+    { "id": "jit-vendor", "breaksBefore": "vendor_session_established", "validates": "identity, approval, expiry" },
+    { "id": "ot-boundary", "breaksBefore": "engineering_path_resolved", "validates": "broker destination and enforced conduit" },
+    { "id": "project-rbac", "breaksBefore": "controller_context_acquired", "validates": "project read and controller change authority" },
+    { "id": "view-integrity", "breaksBefore": "operator_view_frozen", "validates": "HMI versus independent telemetry" },
+    { "id": "write-allowlist", "breaksBefore": "pump_command_changed", "validates": "approved tag, value, origin, and maintenance window" },
+    { "id": "safety-interlock", "breaksAfter": "pump_command_changed", "validates": "minimum-pressure invariant independent of operator view" }
+  ]
+}
