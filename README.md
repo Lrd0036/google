@@ -143,7 +143,8 @@ pnpm demo:proof
 pnpm demo:site
 ```
 
-The cockpit opens at `http://localhost:3000/?range=http://127.0.0.1:9400`.
+The cockpit opens at `http://localhost:3000` and reaches the range through the
+same-origin `/api/royal-duke` development gateway.
 Run `pnpm demo:down` when finished.
 
 The generated evidence bundle is available from

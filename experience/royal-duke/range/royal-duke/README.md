@@ -46,7 +46,8 @@ curl -fsS http://127.0.0.1:9400/api/v1/state | jq
 pnpm demo:range:smoke
 ```
 
-Open the local site at `http://localhost:3000/?range=http://127.0.0.1:9400`.
+Open the local site at `http://localhost:3000`. Its same-origin development
+gateway proxies `/api/royal-duke` to this localhost-only controller.
 The attack-surface panel can advance the prerequisite-gated range actions and
 will replace the documentary pressure values with OT-sim telemetry.
 

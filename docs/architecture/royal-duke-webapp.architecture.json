@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Royal Duke authenticated web application",
+    "quality_profile": "showcase",
+    "viewBox": [1280, 750],
+    "views": [
+      {
+        "id": "human-path",
+        "label": "Human access",
+        "focus": ["owner", "iap", "webapp", "control"],
+        "note": "One Google account reaches one web origin; the browser never receives backend credentials."
+      },
+      {
+        "id": "agent-path",
+        "label": "Agent reasoning",
+        "focus": ["control", "gateway", "agents", "state"],
+        "note": "Control supplies bounded evidence; Gemini agents return recommendations through governed paths."
+      },
+      {
+        "id": "physical-path",
+        "label": "Physical simulation",
+        "focus": ["control", "broker", "worker", "bridge", "otsim"],
+        "note": "Signed capabilities travel outward; telemetry and Control state stream back to the map."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "owner",
+      "type": "external",
+      "label": "Lance's Google account",
+      "sublabel": "Only authorized human",
+      "pos": [40, 110],
+      "size": [170, 76]
+    },
+    {
+      "id": "iap",
+      "type": "security",
+      "label": "Cloud Run direct IAP",
+      "sublabel": "Google login · one-account allowlist",
+      "pos": [260, 110],
+      "size": [190, 76]
+    },
+    {
+      "id": "webapp",
+      "type": "frontend",
+      "label": "Royal Duke Web App",
+      "sublabel": "Console + map, one origin",
+      "pos": [500, 110],
+      "size": [190, 76]
+    },
+    {
+      "id": "control",
+      "type": "backend",
+      "label": "Runbook Control",
+      "sublabel": "Incident truth and RBIR runtime",
+      "pos": [750, 110],
+      "size": [190, 76]
+    },
+    {
+      "id": "state",
+      "type": "database",
+      "label": "Firestore + Pub/Sub",
+      "sublabel": "Canonical state and async work",
+      "pos": [1010, 110],
+      "size": [190, 76]
+    },
+    {
+      "id": "gateway",
+      "type": "security",
+      "label": "Agent Gateway",
+      "sublabel": "ENFORCE + Model Armor",
+      "pos": [750, 300],
+      "size": [190, 76]
+    },
+    {
+      "id": "agents",
+      "type": "cloud",
+      "label": "Agent Runtime fleet",
+      "sublabel": "ADK agents using Gemini",
+      "pos": [1010, 300],
+      "size": [190, 76]
+    },
+    {
+      "id": "broker",
+      "type": "security",
+      "label": "Action Broker",
+      "sublabel": "Signed grant enforcement",
+      "pos": [500, 300],
+      "size": [190, 76]
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "Royal Duke Worker",
+      "sublabel": "Bounded capabilities only",
+      "pos": [260, 300],
+      "size": [190, 76]
+    },
+    {
+      "id": "bridge",
+      "type": "backend",
+      "label": "Authenticated range bridge",
+      "sublabel": "Outbound-only bridge",
+      "pos": [260, 500],
+      "size": [190, 76]
+    },
+    {
+      "id": "otsim",
+      "type": "external",
+      "label": "Local Royal Duke OT-sim",
+      "sublabel": "P-101, pressure, flow, HMI",
+      "pos": [500, 500],
+      "size": [190, 76]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "Google Cloud private application plane",
+      "wraps": ["webapp", "control", "state", "gateway", "agents", "broker", "worker"],
+      "pad": 24
+    },
+    {
+      "kind": "region",
+      "label": "Local isolated simulation",
+      "wraps": ["bridge", "otsim"],
+      "pad": 24
+    }
+  ],
+  "connections": [
+    { "id": "login", "from": "owner", "to": "iap", "label": "OAuth", "variant": "emphasis" },
+    { "id": "iap-web", "from": "iap", "to": "webapp", "label": "IAP JWT", "variant": "security" },
+    { "id": "web-control", "from": "webapp", "to": "control", "label": "API + SSE", "variant": "emphasis" },
+    { "id": "control-state", "from": "control", "to": "state", "label": "state/events" },
+    { "id": "control-gateway", "from": "control", "to": "gateway", "label": "evidence", "fromSide": "bottom", "toSide": "top", "labelAt": [845, 230] },
+    { "id": "gateway-agents", "from": "gateway", "to": "agents", "label": "agent call", "variant": "security" },
+    { "id": "agents-control", "from": "agents", "to": "control", "label": "recommendation", "variant": "dashed", "fromSide": "top", "toSide": "right", "via": [[1105, 240], [965, 240], [965, 148]] },
+    { "id": "control-broker", "from": "control", "to": "broker", "label": "signed action grants", "variant": "security" },
+    { "id": "broker-worker", "from": "broker", "to": "worker", "label": "capability", "labelAt": [475, 390] },
+    { "id": "worker-bridge", "from": "worker", "to": "bridge", "label": "command", "fromSide": "bottom", "toSide": "top", "labelAt": [355, 430] },
+    { "id": "bridge-otsim", "from": "bridge", "to": "otsim", "label": "local API", "variant": "emphasis" },
+    { "id": "bridge-control", "from": "bridge", "to": "control", "label": "telemetry/results", "variant": "dashed", "fromSide": "left", "toSide": "bottom", "via": [[220, 538], [220, 650], [1230, 650], [1230, 210], [845, 210]] }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Only public trust boundary",
+      "items": ["Direct IAP protects every Cloud Run ingress path", "Private services reject direct unauthenticated invocation"]
+    },
+    {
+      "dot": "amber",
+      "title": "Physical boundary",
+      "items": ["OT-sim remains localhost-only", "The bridge exposes bounded commands, never Modbus or arbitrary writes"]
+    }
+  ]
+}

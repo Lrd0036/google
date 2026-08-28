@@ -50,6 +50,7 @@ export default defineConfig(async () => {
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
     'X-DNS-Prefetch-Control': 'off',
   };
+  const rangeControllerUrl = process.env.ROYAL_DUKE_CONTROLLER_URL ?? 'http://127.0.0.1:9400';
 
   return {
     css: { postcss: { plugins: [tailwindcss()] } },
@@ -58,6 +59,13 @@ export default defineConfig(async () => {
     },
     server: {
       headers: securityHeaders,
+      proxy: {
+        '/api/royal-duke': {
+          target: rangeControllerUrl,
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/royal-duke/, '/api/v1'),
+        },
+      },
       ...(isCodexSeatbeltSandbox
         ? { watch: { useFsEvents: false, usePolling: true } }
         : {}),

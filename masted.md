@@ -1415,7 +1415,7 @@ pnpm demo:range:smoke
 Start the site with `pnpm demo:site` and open:
 
 ```text
-http://localhost:3000/?range=http://127.0.0.1:9400
+http://localhost:3000
 ```
 
 ### Run the complete proof

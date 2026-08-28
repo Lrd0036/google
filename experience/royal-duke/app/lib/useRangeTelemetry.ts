@@ -52,32 +52,14 @@ export type RangeState = {
 type Connection = 'detached' | 'connecting' | 'online' | 'degraded';
 
 export function useRangeTelemetry() {
-  const [endpoint, setEndpoint] = useState<string | null>(null);
+  const endpoint = '/api/royal-duke';
   const [state, setState] = useState<RangeState | null>(null);
-  const [connection, setConnection] = useState<Connection>('detached');
+  const [connection, setConnection] = useState<Connection>('connecting');
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const value = new URLSearchParams(window.location.search).get('range');
-      if (!value) return;
-      try {
-        const parsed = new URL(value);
-        if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('unsupported protocol');
-        setEndpoint(parsed.origin);
-        setConnection('connecting');
-      } catch {
-        setConnection('degraded');
-        setError('The range query parameter must be an HTTP or HTTPS origin.');
-      }
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, []);
-
   const refresh = useCallback(async () => {
-    if (!endpoint) return;
     try {
-      const response = await fetch(`${endpoint}/api/v1/state`, { cache: 'no-store', signal: AbortSignal.timeout(3000) });
+      const response = await fetch(`${endpoint}/state`, { cache: 'no-store', signal: AbortSignal.timeout(3000) });
       if (!response.ok) throw new Error(`Range controller returned ${response.status}.`);
       const next = (await response.json()) as RangeState;
       setState(next);
@@ -91,14 +73,13 @@ export function useRangeTelemetry() {
   }, [endpoint]);
 
   useEffect(() => {
-    if (!endpoint) return;
     if (typeof EventSource === 'undefined') {
       const initial = window.setTimeout(() => void refresh(), 0);
       const timer = window.setInterval(() => void refresh(), 1500);
       return () => { window.clearTimeout(initial); window.clearInterval(timer); };
     }
 
-    const stream = new EventSource(`${endpoint}/api/v1/events`);
+    const stream = new EventSource(`${endpoint}/events`);
     let receivedState = false;
     stream.addEventListener('state', (event) => {
       try {
@@ -124,7 +105,6 @@ export function useRangeTelemetry() {
 
   const post = useCallback(
     async (path: string) => {
-      if (!endpoint) return;
       setError('');
       try {
         // Starting an exercise may include managed-agent, Model Armor, and
@@ -149,9 +129,9 @@ export function useRangeTelemetry() {
     state,
     connection,
     error,
-    runAction: (id: string) => post(`/api/v1/actions/${encodeURIComponent(id)}`),
-    reset: () => post('/api/v1/reset'),
-    approve: () => post('/api/v1/fleet/approve'),
-    reportUrl: endpoint ? `${endpoint}/api/v1/fleet/bundle` : null,
+    runAction: (id: string) => post(`/actions/${encodeURIComponent(id)}`),
+    reset: () => post('/reset'),
+    approve: () => post('/fleet/approve'),
+    reportUrl: `${endpoint}/fleet/bundle`,
   };
 }

@@ -58,7 +58,7 @@ The site is an eleven-scene guided attack and response on a graded satellite glo
 2. Paper beacons mark real Loudoun halls; scenario overlays mark Royal Duke HQ, the water plant, and vendor access.
 3. In detached mode, play the briefing or jump scenes. Once attached, the chapter controls lock and the Control Panel becomes the only driver of the map.
 4. **Runbook & authority** shows the deterministic, compiled-action, and human-approval boundaries.
-5. **Control panel** becomes the live cockpit when `?range=` attaches the site to OT-sim and the defensive fleet.
+5. **Control panel** becomes the live cockpit when the same-origin range gateway attaches the site to OT-sim and the defensive fleet.
 
 Reduced-motion browsers skip the intro fly and autoplay.
 
@@ -85,7 +85,8 @@ pnpm demo:up
 pnpm demo:range:smoke
 ```
 
-Then open [http://localhost:3000/?range=http://127.0.0.1:9400](http://localhost:3000/?range=http://127.0.0.1:9400).
+Then open [http://localhost:3000](http://localhost:3000). The development server
+proxies `/api/royal-duke` to the localhost-only controller.
 
 | Command | What it does |
 | --- | --- |
@@ -215,7 +216,7 @@ flowchart TB
       PLC[process-plc]
     end
   end
-  Film -->|"?range="| Ctrl
+  Film -->|"/api/royal-duke"| Ctrl
   Ctrl --> CtrlC
   CtrlC --> GW
   GW -->|"Modbus TCP"| PLC
@@ -256,7 +257,7 @@ app/
     nervous-system.ts      Veins, packets, pulse rings
     beacon-layer.ts        Three.js monuments on the map GL context
     map-style.ts           Graded Esri satellite + fallback
-    useRangeTelemetry.ts   Optional ?range= attachment
+    useRangeTelemetry.ts   Same-origin live range attachment
 range/royal-duke/
   scenario.json            Executable attack, presentation, map, and authority contract
   docker-compose.yml       Isolated OT-sim stack
@@ -266,9 +267,10 @@ loudoun_data_centers.json  Public OSM-derived hall list
 ```
 
 The documentary map and cockpit are projections of the same
-`range/royal-duke/scenario.json`. When `?range=` is healthy, operator and
-physical PSI come from OT-sim, while the visible scene follows proven action and
-fleet state delivered by the Control stream.
+`range/royal-duke/scenario.json`. The browser attaches only through the
+same-origin `/api/royal-duke` gateway. Operator and physical PSI come from
+OT-sim, while the visible scene follows proven action and fleet state delivered
+by the Control stream.
 
 ---
 

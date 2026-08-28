@@ -59,7 +59,8 @@ cloud-production evidence.
 
 - [x] **CLAIM 9 — The Royal Duke map is a real-time projection of Control and OT-sim state, not a manually advanced presentation.** `[LOCAL] [BROWSER]`
 
-  Evidence: `GET /api/v1/events` streams revisioned state snapshots; the range
+  Evidence: same-origin `GET /api/royal-duke/events` incrementally proxies
+  revisioned `GET /api/v1/events` state snapshots; the range
   smoke subscribes before each action and verifies the corresponding state
   event; attached browser mode disables every chapter button and replaces the
   transport with `CONTROL STREAM · LIVE`. Playwright confirmed that pressing
