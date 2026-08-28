@@ -36,6 +36,10 @@ flowchart LR
   - `broker/`: Cloud Run Action Broker Policy Enforcement Point (PEP) (`@runbook/broker`).
   - `royal-duke-worker/`: Bounded Royal Duke OT capability adapter (`@runbook/royal-duke-worker`).
   - `console/`: Operator Web UI (React + Vite) (`@runbook/console`).
+- `experience/royal-duke/`
+  - Canonical Royal Duke attack cockpit, live OT-sim range, bounded local
+    controller, scenario model, and browser proof artifacts
+    (`@lrd0036/sclc`).
 - `infra/`
   - `docker/`: Local Docker Compose with Firestore and Pub/Sub emulators.
   - `terraform/`: GCP infrastructure modules (Cloud Run, Firestore, Pub/Sub, KMS, IAM).
@@ -54,6 +58,12 @@ pnpm build
 # Run type checks
 pnpm typecheck
 ```
+
+This repository is the canonical combined source. The historical SCLC checkout
+was imported at commit `b938d6b` and its working Royal Duke changes were
+layered into `experience/royal-duke`. Do not develop the demo in the old SCLC
+checkout and copy changes back by hand; make changes here. See
+[`docs/REPOSITORY-MANAGEMENT.md`](./docs/REPOSITORY-MANAGEMENT.md).
 
 ## Local implementation path
 
@@ -120,8 +130,14 @@ bounded prototype components; this is not evidence of production-plant control.
 Run the complete exercise after starting both local stacks:
 
 ```bash
-pnpm local:royal-duke-exercise
+pnpm demo:up
+pnpm demo:range:smoke
+pnpm demo:proof
+pnpm demo:site
 ```
+
+The cockpit opens at `http://localhost:3000/?range=http://127.0.0.1:9400`.
+Run `pnpm demo:down` when finished.
 
 The generated evidence bundle is available from
 `GET /exercises/:exercise_id/bundle` and includes its own SHA-256 digest.

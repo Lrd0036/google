@@ -13,7 +13,38 @@ export type RangeState = {
   services: { processPlc: 'online' | 'offline'; operatorGateway: 'online' | 'offline' };
   telemetry: Record<string, number>;
   telemetryErrors: string[];
-  events: Array<{ id: string; at: string; kind: string; summary: string }>;
+  defensive: { evidencePreserved: boolean; remoteWritesContained: boolean; restorationPrepared: boolean };
+  exerciseId: string | null;
+  fleet: null | {
+    exercise_id?: string;
+    status: string;
+    updated_at?: string;
+    trace_id?: string;
+    campaign?: { received: 214; routine: 147; decoys: 39; correlated_anomalies: 17; causal_events: 7; authoritative_facts: 4 };
+    facts?: Array<{ fact_id: string; label: string; status: 'PENDING' | 'PROVEN'; evidence_ids: string[] }>;
+    activities?: Array<{ activity_id: string; agent_name: string; status: string; summary: string; decision?: string; evidence_ids: string[] }>;
+    divergence_elapsed_seconds?: number;
+    recovery_elapsed_seconds?: number;
+    recovery_started_at?: string;
+    model_armor?: { template: string; match_state: string; invocation_result: string; verdict_event_id: string; trace_id: string };
+    shadow_decision?: string;
+    authoritative_decision?: string;
+    pending_approval?: { approval_id: string; role: string; proposed_action: string };
+    approval?: { decision: string; principal: string; assertion_id: string };
+    injected_evidence?: { evidence_id: string; text: string; trust: string };
+    report?: {
+      title: string;
+      executive_summary: string;
+      report_sha256: string;
+      event_chain_valid: boolean;
+      event_ids: string[];
+      verification: { outcome: string; threshold_psi: 58; stable_seconds: 30 };
+      limitations: string[];
+    };
+    error?: string;
+  };
+  provenance: Array<{ key: string; label: string; value: string; status: 'VERIFIED' | 'UNAVAILABLE' | 'FAILED'; source: string; checked_at: string; href?: string }>;
+  events: Array<{ id: string; at: string; kind: string; summary: string; detail?: Record<string, unknown> }>;
 };
 
 type Connection = 'detached' | 'connecting' | 'online' | 'degraded';
@@ -25,17 +56,20 @@ export function useRangeTelemetry() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const value = new URLSearchParams(window.location.search).get('range');
-    if (!value) return;
-    try {
-      const parsed = new URL(value);
-      if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('unsupported protocol');
-      setEndpoint(parsed.origin);
-      setConnection('connecting');
-    } catch {
-      setConnection('degraded');
-      setError('The range query parameter must be an HTTP or HTTPS origin.');
-    }
+    const timer = window.setTimeout(() => {
+      const value = new URLSearchParams(window.location.search).get('range');
+      if (!value) return;
+      try {
+        const parsed = new URL(value);
+        if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('unsupported protocol');
+        setEndpoint(parsed.origin);
+        setConnection('connecting');
+      } catch {
+        setConnection('degraded');
+        setError('The range query parameter must be an HTTP or HTTPS origin.');
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const refresh = useCallback(async () => {
@@ -56,9 +90,9 @@ export function useRangeTelemetry() {
 
   useEffect(() => {
     if (!endpoint) return;
-    void refresh();
+    const initial = window.setTimeout(() => void refresh(), 0);
     const timer = window.setInterval(() => void refresh(), 1500);
-    return () => window.clearInterval(timer);
+    return () => { window.clearTimeout(initial); window.clearInterval(timer); };
   }, [endpoint, refresh]);
 
   const post = useCallback(
@@ -86,5 +120,7 @@ export function useRangeTelemetry() {
     error,
     runAction: (id: string) => post(`/api/v1/actions/${encodeURIComponent(id)}`),
     reset: () => post('/api/v1/reset'),
+    approve: () => post('/api/v1/fleet/approve'),
+    reportUrl: endpoint ? `${endpoint}/api/v1/fleet/bundle` : null,
   };
 }

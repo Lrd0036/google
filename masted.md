@@ -146,7 +146,7 @@ Royal Duke uses the upstream [OT-sim](https://github.com/patsec/ot-sim) project 
 ghcr.io/patsec/ot-sim@sha256:35a4f4419ce10ce747d295a4f0d292a14f68c3b70b5eabfd7eb54f37c5d28a18
 ```
 
-The model runs three containers from [`range/royal-duke/docker-compose.yml`](../SCLC/range/royal-duke/docker-compose.yml):
+The model runs three containers from [`range/royal-duke/docker-compose.yml`](./experience/royal-duke/range/royal-duke/docker-compose.yml):
 
 | Container | Function |
 |---|---|
@@ -154,7 +154,7 @@ The model runs three containers from [`range/royal-duke/docker-compose.yml`](../
 | `operator-gateway` | Polls the process PLC, computes the operator view, exposes DNP3, and can freeze displayed pressure |
 | `range-controller` | Exposes only scenario-defined attack and defensive actions on localhost |
 
-The process model updates every 500 milliseconds. Its principal equations are implemented in [`process-plc.xml`](../SCLC/range/royal-duke/config/process-plc.xml):
+The process model updates every 500 milliseconds. Its principal equations are implemented in [`process-plc.xml`](./experience/royal-duke/range/royal-duke/config/process-plc.xml):
 
 ```text
 safety_intervened = safety_interlock != 0 && pressure < 58 && pump_command == 0
@@ -168,7 +168,7 @@ low_pressure_alarm = pressure < 52
 
 With P-101 energized, pressure converges toward the 62 PSI setpoint and flow toward 11,480 GPM. With the pump de-energized, pressure converges toward 18 PSI and flow toward 900 GPM. The low-pressure alarm asserts below 52 PSI.
 
-The operator projection is separate. [`operator-gateway.xml`](../SCLC/range/royal-duke/config/operator-gateway.xml) computes:
+The operator projection is separate. [`operator-gateway.xml`](./experience/royal-duke/range/royal-duke/config/operator-gateway.xml) computes:
 
 ```text
 operator_pressure = view_freeze != 0 ? view_hold_pressure : physical_pressure
@@ -288,11 +288,12 @@ flowchart TB
 
 ## Repository layout
 
-The implementation spans two repositories.
+The implementation now lives in one canonical pnpm monorepo rooted at
+`.`. The former SCLC project was imported as the
+`experience/royal-duke` workspace. Its historical checkout remains unchanged
+and is no longer a second development source of truth.
 
-### Runbook Compiler repository
-
-Root: `.`
+### Compiler, fleet, and authority plane
 
 | Path | Responsibility |
 |---|---|
@@ -313,19 +314,19 @@ Root: `.`
 | [`infra/terraform`](./infra/terraform) | Cloud Run, IAM, Firestore, Pub/Sub, KMS, and related infrastructure modules |
 | [`scripts/local-royal-duke-exercise-smoke.mjs`](./scripts/local-royal-duke-exercise-smoke.mjs) | Full integrated attack, containment, approval, recovery, report, and provenance smoke |
 
-### Royal Duke repository
+### Royal Duke experience workspace
 
-Root: `/path/to/SCLC`
+Workspace: `experience/royal-duke` (`@lrd0036/sclc`)
 
 | Path | Responsibility |
 |---|---|
-| [`range/royal-duke/scenario.json`](../SCLC/range/royal-duke/scenario.json) | Attack surfaces, assets, prerequisites, actions, evidence, and fidelity labels |
-| [`range/royal-duke/controller/server.mjs`](../SCLC/range/royal-duke/controller/server.mjs) | Local bounded attack controller, telemetry bridge, defensive endpoints, approval/report proxy, and follow-up write denial |
-| [`range/royal-duke/config/process-plc.xml`](../SCLC/range/royal-duke/config/process-plc.xml) | Pump and water-process logic plus Modbus server mapping |
-| [`range/royal-duke/config/operator-gateway.xml`](../SCLC/range/royal-duke/config/operator-gateway.xml) | HMI projection, divergence telemetry, Modbus client, and DNP3 server mapping |
-| [`app/components/AttackSurface.tsx`](../SCLC/app/components/AttackSurface.tsx) | Attack cockpit, timers, funnel, agent split, approval panel, report, and provenance |
-| [`app/lib/useRangeTelemetry.ts`](../SCLC/app/lib/useRangeTelemetry.ts) | Polling, type contract, reset, attack action, approval, and bundle URL |
-| [`range/royal-duke/controller/smoke.mjs`](../SCLC/range/royal-duke/controller/smoke.mjs) | Range-only scenario smoke |
+| [`range/royal-duke/scenario.json`](./experience/royal-duke/range/royal-duke/scenario.json) | Attack surfaces, assets, prerequisites, actions, evidence, and fidelity labels |
+| [`range/royal-duke/controller/server.mjs`](./experience/royal-duke/range/royal-duke/controller/server.mjs) | Local bounded attack controller, telemetry bridge, defensive endpoints, approval/report proxy, and follow-up write denial |
+| [`range/royal-duke/config/process-plc.xml`](./experience/royal-duke/range/royal-duke/config/process-plc.xml) | Pump and water-process logic plus Modbus server mapping |
+| [`range/royal-duke/config/operator-gateway.xml`](./experience/royal-duke/range/royal-duke/config/operator-gateway.xml) | HMI projection, divergence telemetry, Modbus client, and DNP3 server mapping |
+| [`app/components/AttackSurface.tsx`](./experience/royal-duke/app/components/AttackSurface.tsx) | Attack cockpit, timers, funnel, agent split, approval panel, report, and provenance |
+| [`app/lib/useRangeTelemetry.ts`](./experience/royal-duke/app/lib/useRangeTelemetry.ts) | Polling, type contract, reset, attack action, approval, and bundle URL |
+| [`range/royal-duke/controller/smoke.mjs`](./experience/royal-duke/range/royal-duke/controller/smoke.mjs) | Range-only scenario smoke |
 
 ## Implementation change inventory
 
@@ -399,8 +400,8 @@ The old `acme-worker` Cloud Run service and service account were also removed af
 | `.local/royal-duke-agent-runtime.json` | Local deployment record for six Agent Runtime resources |
 | `.local/royal-duke-cooling-incident.rbir.json` | Compiled RBIR document |
 | `.local/royal-duke-evidence-bundle.json` | Latest content-addressed incident proof |
-| `../SCLC/output/playwright/royal-duke-home.png` | Browser proof of the Royal Duke page |
-| `../SCLC/output/playwright/royal-duke-cockpit.png` | Browser proof of the live cockpit |
+| `./experience/royal-duke/output/playwright/royal-duke-home.png` | Browser proof of the Royal Duke page |
+| `./experience/royal-duke/output/playwright/royal-duke-cockpit.png` | Browser proof of the live cockpit |
 
 ## Human runbook
 
@@ -1052,7 +1053,7 @@ The reporter cannot delay the recovery state, suppress evidence, redefine verifi
 
 ## Cockpit experience
 
-The cockpit is implemented in [`AttackSurface.tsx`](../SCLC/app/components/AttackSurface.tsx). It opens as a live incident console rather than a slide deck.
+The cockpit is implemented in [`AttackSurface.tsx`](./experience/royal-duke/app/components/AttackSurface.tsx). It opens as a live incident console rather than a slide deck.
 
 The main presentation elements are:
 
@@ -1081,7 +1082,7 @@ Incident declaration is the 15-second telemetry rule—not a model opinion.
 Recovery is pressure above 58 PSI for 30 seconds—not whatever Gemini calls success.
 ```
 
-A verified cockpit screenshot is available at [`output/playwright/royal-duke-cockpit.png`](../SCLC/output/playwright/royal-duke-cockpit.png).
+A verified cockpit screenshot is available at [`output/playwright/royal-duke-cockpit.png`](./experience/royal-duke/output/playwright/royal-duke-cockpit.png).
 
 ## HTTP surfaces
 
@@ -1247,7 +1248,7 @@ The wider suites add:
 - Scheduler deduplication and bounded retries.
 - RunbookBench draft-corpus and publication-gate checks.
 
-The completed validation commands were:
+The completed pre-integration validation commands were:
 
 ```bash
 cd .
@@ -1257,10 +1258,9 @@ pnpm build
 pnpm local:smoke
 pnpm local:royal-duke-exercise
 
-cd /path/to/SCLC
-npm run lint
-npm run build
-npm run range:smoke
+pnpm demo:lint
+pnpm demo:build
+pnpm demo:range:smoke
 ```
 
 Results:
@@ -1270,13 +1270,42 @@ Runbook Compiler typecheck: pass
 Runbook Compiler workspace tests: pass
 Control tests: 21 passed, 0 failed
 Runbook Compiler production build: pass
-SCLC lint: pass
-SCLC production build: pass
+Royal Duke experience lint: pass
+Royal Duke experience production build: pass
 Range smoke: pass
 Integrated Royal Duke attack and recovery: pass
 ```
 
-The SCLC build emits a non-fatal chunk-size warning. Terraform formatting was not rerun in the final local sweep because the Terraform CLI was not installed on the machine. The changed Terraform path is a narrow worker service and identity rename, and the corresponding private Cloud Run service was verified live.
+The Royal Duke experience build emits a non-fatal chunk-size warning. Terraform formatting was not rerun in the final local sweep because the Terraform CLI was not installed on the machine. The changed Terraform path is a narrow worker service and identity rename, and the corresponding private Cloud Run service was verified live.
+
+### Canonical monorepo integration proof
+
+The SCLC source tree was imported at commit `b938d6b` as a squashed subtree,
+its working Royal Duke patch and browser screenshots were applied only to the
+new `experience/royal-duke` workspace, and its nested npm lockfile was removed.
+The root pnpm lock now resolves all 13 workspace projects.
+
+After the import, the following passed from the repository root:
+
+```text
+pnpm install: pass, 13 workspaces
+pnpm typecheck: pass
+pnpm test: pass
+pnpm demo:lint: pass
+pnpm build: pass, including the Royal Duke experience
+pnpm demo:range:smoke: pass
+pnpm local:royal-duke-exercise: pass
+```
+
+The post-import integrated exercise was
+`rdx_39dee6db-79d6-42f9-b38d-5316ec6cc51a`. It reproduced all 214 campaign
+events, the compromised Shadow Analyst response, the authoritative operator-view
+integrity finding, Model Armor `MATCH_FOUND`, the blocked follow-up write, the
+30-second recovery verification, all ten verified provenance rows, and report
+digest
+`sha256:a2b49406601686dfe61bbb75f271174411a5b0570b6c0050c33b79c0c82c210c`.
+The source SCLC checkout remained on `main` at `b938d6b`; it was neither edited
+by the import nor pushed.
 
 ## Reproducing the local system
 
@@ -1285,7 +1314,6 @@ The SCLC build emits a non-fatal chunk-size warning. Terraform formatting was no
 ```text
 Node.js 22
 pnpm 9
-npm
 Docker Desktop
 gcloud CLI for live managed proof
 uv and Python 3.13 for fleet deployment or update
@@ -1335,16 +1363,16 @@ FLEET_BRIDGE_TOKEN
 
 Do not copy local demo credentials into a production environment. Use managed secrets and workload identity for a deployed path.
 
-### Start Royal Duke
+### Start the combined demo
 
 ```bash
-cd /path/to/SCLC
-docker compose -f range/royal-duke/docker-compose.yml up -d
+cd .
+pnpm demo:up
 curl -fsS http://127.0.0.1:9400/health
-npm run range:smoke
+pnpm demo:range:smoke
 ```
 
-Start the site and open:
+Start the site with `pnpm demo:site` and open:
 
 ```text
 http://localhost:3000/?range=http://127.0.0.1:9400

@@ -145,9 +145,18 @@
       "stage": 3,
       "label": "Freeze the operator pressure view",
       "plane": "integrity",
-      "prerequisites": ["controller_context_acquired"],
+      "prerequisites": ["prompt_injection_inserted"],
       "effect": "The gateway holds the displayed pressure at 62 PSI while independent process telemetry remains live.",
       "evidence": "displayed-versus-physical divergence"
+    },
+    {
+      "id": "prompt_injection_inserted",
+      "stage": 3,
+      "label": "Poison the defensive evidence stream",
+      "plane": "agent-security",
+      "prerequisites": ["controller_context_acquired"],
+      "effect": "An attacker-controlled maintenance note attempts to steer defensive AI toward SENSOR_FAULT and away from containment.",
+      "evidence": "vendor session note, evidence provenance, Model Armor verdict"
     },
     {
       "id": "pump_command_changed",
@@ -159,11 +168,21 @@
       "evidence": "gateway update, Modbus coil write, PLC state transition"
     },
     {
+      "id": "followup_write_attempt",
+      "stage": 5,
+      "label": "Attempt another controller write",
+      "plane": "control",
+      "prerequisites": ["pump_command_changed"],
+      "effect": "The attacker retries the affected write path after containment; the range records the denial without touching process state.",
+      "evidence": "contained-path denial record",
+      "requiredDefense": "remoteWritesContained"
+    },
+    {
       "id": "low_pressure_observed",
       "stage": 5,
       "label": "Observe low-pressure consequence",
       "plane": "physics",
-      "prerequisites": ["pump_command_changed"],
+      "prerequisites": ["followup_write_attempt"],
       "condition": "process.pressure.psi < 52",
       "effect": "The model records a physical consequence only after simulated pressure crosses the alarm threshold.",
       "evidence": "independent process pressure and alarm point"

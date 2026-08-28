@@ -62,13 +62,14 @@ Reduced-motion browsers skip the intro fly and autoplay.
 
 ## Quick start
 
-Requires **Node 22.13+**. Docker is optional and only needed for the live process model.
+Royal Duke is the `experience/royal-duke` workspace in the Runbook Compiler
+monorepo. Requires **Node 22.13+** and pnpm 9. Docker is optional and only
+needed for the live process model.
 
 ```sh
-git clone https://github.com/Lrd0036/SCLC.git
-cd SCLC
-npm install
-npm run dev
+cd /path/to/runbook-compiler
+pnpm install
+pnpm demo:site
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -76,21 +77,21 @@ Open [http://localhost:3000](http://localhost:3000).
 That is the film. To attach the executable range:
 
 ```sh
-npm run range:up
-npm run range:smoke
+pnpm demo:up
+pnpm demo:range:smoke
 ```
 
 Then open [http://localhost:3000/?range=http://127.0.0.1:9400](http://localhost:3000/?range=http://127.0.0.1:9400).
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | Vinext / Vite dev server on port 3000 |
-| `npm run build` | Production build |
-| `npm run start` | Serve the production build |
-| `npm run lint` | ESLint |
-| `npm run range:up` | Start the isolated OT-sim stack |
-| `npm run range:down` | Stop the stack (keeps pinned files) |
-| `npm run range:smoke` | Prove pump write, frozen HMI, and low-pressure alarm |
+| `pnpm demo:site` | Vinext / Vite dev server on port 3000 |
+| `pnpm demo:build` | Production build |
+| `pnpm demo:lint` | ESLint |
+| `pnpm demo:up` | Start the Compiler services and isolated OT-sim stack |
+| `pnpm demo:down` | Stop both local stacks |
+| `pnpm demo:range:smoke` | Prove pump write, frozen HMI, and low-pressure alarm |
+| `pnpm demo:proof` | Run the range smoke and integrated fleet exercise |
 
 Copy `.env.example` to `.env.local` only if you need to override range CORS. The site does not require API keys.
 
@@ -217,10 +218,10 @@ flowchart TB
 
 Image pin: `ghcr.io/patsec/ot-sim@sha256:35a4f4419ce10ce747d295a4f0d292a14f68c3b70b5eabfd7eb54f37c5d28a18` ([OT-sim](https://github.com/patsec/ot-sim) `f12dfd55`, GPL-3.0). Containers drop all capabilities and start with `no-new-privileges`.
 
-Smoke test after `range:up`:
+Smoke test after `demo:up` from the monorepo root:
 
 ```sh
-npm run range:smoke
+pnpm demo:range:smoke
 ```
 
 It resets the model, walks the five writable actions, waits for physical pressure to cross 52 PSI, and asserts that the operator view remained frozen at 62 PSI.

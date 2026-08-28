@@ -3,10 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "description": "Royal Duke cyber range — Auburn AIS SCLC 2026 simulation",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Lrd0036/SCLC.git"
-  },
   "exports": {
     ".": "./app/page.tsx",
     "./page": "./app/page.tsx",

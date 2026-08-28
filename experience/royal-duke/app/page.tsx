@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import AttackSurface from './components/AttackSurface';
 import DefenseBrief from './components/DefenseBrief';
 import DocumentaryMap from './components/DocumentaryMap';
@@ -19,6 +19,7 @@ export default function Home() {
   const [surfaceOpen, setSurfaceOpen] = useState(false);
   const [selectedDefenses, setSelectedDefenses] = useState<string[]>([]);
   const [budgetError, setBudgetError] = useState('');
+  const openedLiveCockpit = useRef(false);
   const range = useRangeTelemetry();
   const current = STAGES[stage];
   const spend = DEFENSES.reduce((sum, defense) => sum + (selectedDefenses.includes(defense.id) ? defense.cost : 0), 0);
@@ -57,10 +58,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!playing || intro) return;
-    if (contained) {
-      setPlaying(false);
-      return;
-    }
+    if (contained) return;
     const timer = window.setTimeout(() => {
       if (stage >= 5) {
         setPlaying(false);
@@ -92,8 +90,17 @@ export default function Home() {
 
   useEffect(() => {
     if (range.connection !== 'online' || !range.state) return;
-    setStage(Math.max(0, Math.min(5, range.state.stage)));
-  }, [range.connection, range.state?.stage]);
+    const timer = window.setTimeout(() => {
+      setStage(Math.max(0, Math.min(5, range.state!.stage)));
+      if (!openedLiveCockpit.current) {
+        openedLiveCockpit.current = true;
+        setIntro(false);
+        setPlaying(false);
+        setSurfaceOpen(true);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [range.connection, range.state]);
 
   return (
     <main className="film">
@@ -169,6 +176,8 @@ export default function Home() {
         onClose={() => setSurfaceOpen(false)}
         onRunAction={(id) => void range.runAction(id)}
         onReset={() => void range.reset()}
+        onApprove={() => void range.approve()}
+        reportUrl={range.reportUrl}
       />
     </main>
   );

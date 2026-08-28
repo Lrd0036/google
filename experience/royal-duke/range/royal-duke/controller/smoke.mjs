@@ -3,12 +3,13 @@ const actions = [
   'vendor_session_established',
   'engineering_path_resolved',
   'controller_context_acquired',
+  'prompt_injection_inserted',
   'operator_view_frozen',
   'pump_command_changed',
 ];
 
 async function call(path, method = 'GET') {
-  const response = await fetch(`${base}${path}`, { method, signal: AbortSignal.timeout(4000) });
+  const response = await fetch(`${base}${path}`, { method, signal: AbortSignal.timeout(120_000) });
   const body = await response.json();
   if (!response.ok) throw new Error(body.error ?? `${method} ${path} returned ${response.status}`);
   return body;
@@ -39,6 +40,9 @@ try {
   assert(state.telemetry['operator.pressure.psi'] === 62, 'operator view did not remain frozen at 62 PSI');
   assert(state.telemetry['alarm.low-pressure'] === 1, 'low-pressure alarm did not assert');
 
+  await call('/api/v1/defensive/contain-remote-writes', 'POST');
+  const blocked = await call('/api/v1/actions/followup_write_attempt', 'POST');
+  assert(blocked.events.some((event) => event.kind === 'blocked-action'), 'follow-up controller write was not visibly blocked');
   const final = await call('/api/v1/actions/low_pressure_observed', 'POST');
   assert(final.stage === 5, 'final consequence gate did not complete');
   passed = true;

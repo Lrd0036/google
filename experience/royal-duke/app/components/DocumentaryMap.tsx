@@ -46,16 +46,15 @@ export default function DocumentaryMap({
   const onIntroCompleteRef = useRef(onIntroComplete);
   const introFinished = useRef(false);
   const arrivedFromIntro = useRef(false);
-  const lastTick = useRef(performance.now());
+  const lastTick = useRef(0);
   const simRef = useRef({ stage, contained, blockStage, pressure, reduced });
 
-  introRef.current = intro;
-  onIntroCompleteRef.current = onIntroComplete;
-  simRef.current = { stage, contained, blockStage, pressure, reduced };
-
   useEffect(() => {
+    introRef.current = intro;
+    onIntroCompleteRef.current = onIntroComplete;
+    simRef.current = { stage, contained, blockStage, pressure, reduced };
     beaconsRef.current?.setState(simRef.current);
-  }, [stage, contained, blockStage, pressure, reduced]);
+  }, [stage, contained, blockStage, pressure, reduced, intro, onIntroComplete]);
 
   useEffect(() => {
     if (!mapEl.current || mapRef.current) return;
@@ -119,7 +118,7 @@ export default function DocumentaryMap({
       const ctx = canvas?.getContext('2d');
       if (!ctx) return;
       const now = performance.now();
-      const dt = Math.min(0.05, (now - lastTick.current) / 1000);
+      const dt = lastTick.current === 0 ? 0 : Math.min(0.05, (now - lastTick.current) / 1000);
       lastTick.current = now;
       const sim = simRef.current;
       beacons.setState(sim);

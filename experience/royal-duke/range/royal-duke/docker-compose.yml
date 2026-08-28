@@ -54,6 +54,8 @@ services:
       GATEWAY_API: http://operator-gateway:9101/api/v1
       PROCESS_API: http://process-plc:9101/api/v1
       SCENARIO_PATH: /app/scenario.json
+      FLEET_API: ${FLEET_API:-}
+      FLEET_BRIDGE_TOKEN: ${FLEET_BRIDGE_TOKEN:-royal-duke-local-demo-bridge-v1}
     volumes:
       - ./controller/server.mjs:/app/server.mjs:ro
       - ./scenario.json:/app/scenario.json:ro

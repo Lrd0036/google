@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises';
 const port = Number.parseInt(process.env.PORT ?? '9400', 10);
 const gatewayApi = process.env.GATEWAY_API ?? 'http://operator-gateway:9101/api/v1';
 const processApi = process.env.PROCESS_API ?? 'http://process-plc:9101/api/v1';
+const fleetApi = process.env.FLEET_API?.replace(/\/$/, '') ?? '';
+const fleetBridgeToken = process.env.FLEET_BRIDGE_TOKEN ?? '';
 const scenarioPath = process.env.SCENARIO_PATH ?? '/app/scenario.json';
 const allowedOrigins = new Set(
   (process.env.ALLOWED_ORIGINS ??
@@ -19,6 +21,10 @@ const state = {
   runId: crypto.randomUUID(),
   completedActions: [],
   events: [],
+  defensive: { evidencePreserved: false, remoteWritesContained: false, restorationPrepared: false },
+  exerciseId: null,
+  fleet: null,
+  provenance: [],
   startedAt: new Date().toISOString(),
 };
 
@@ -45,10 +51,49 @@ function reply(response, request, status, body) {
 }
 
 async function requestJson(url, options = {}) {
-  const response = await fetch(url, { ...options, signal: AbortSignal.timeout(2500) });
+  const { timeoutMs = 2500, ...requestOptions } = options;
+  const response = await fetch(url, { ...requestOptions, signal: AbortSignal.timeout(timeoutMs) });
   if (!response.ok) throw new Error(`${response.status} ${response.statusText} from ${url}`);
   if (response.status === 204) return null;
   return response.json();
+}
+
+async function fleetRequest(path, options = {}) {
+  if (!fleetApi) return null;
+  const headers = { 'content-type': 'application/json', ...(fleetBridgeToken ? { 'x-royal-duke-bridge-token': fleetBridgeToken } : {}), ...(options.headers ?? {}) };
+  return requestJson(`${fleetApi}${path}`, { ...options, headers, timeoutMs: 120_000 });
+}
+
+async function ensureExercise() {
+  if (!fleetApi) return null;
+  if (!state.exerciseId) {
+    const exercise = await fleetRequest('/exercises', { method: 'POST', body: JSON.stringify({ range_run_id: state.runId }) });
+    state.exerciseId = exercise.exercise_id;
+    state.fleet = exercise;
+  }
+  return state.exerciseId;
+}
+
+async function syncFleet(points) {
+  if (!fleetApi) return;
+  try {
+    const exerciseId = await ensureExercise();
+    if (!exerciseId) return;
+    const observation = {
+      observed_at: new Date().toISOString(),
+      pump_state: Number(points['process.pump.actual']) ? 'ENERGIZED' : 'DE_ENERGIZED',
+      independent_pressure_psi: Number(points['process.pressure.psi']),
+      operator_pressure_psi: Number(points['operator.pressure.psi']),
+      remote_write_path: state.defensive.remoteWritesContained ? 'CONTAINED' : 'AVAILABLE',
+      evidence_preserved: state.defensive.evidencePreserved,
+      restoration_prepared: state.defensive.restorationPrepared,
+    };
+    state.fleet = await fleetRequest(`/exercises/${encodeURIComponent(exerciseId)}/observations`, { method: 'POST', body: JSON.stringify(observation) });
+    const provenance = await fleetRequest(`/fleet/provenance?exercise_id=${encodeURIComponent(exerciseId)}`);
+    state.provenance = provenance?.items ?? [];
+  } catch (error) {
+    state.fleet = { status: 'BRIDGE_DEGRADED', error: error.message ?? 'fleet bridge failed' };
+  }
 }
 
 async function writeTag(api, tag, value) {
@@ -86,13 +131,15 @@ function availableActions(points) {
   return scenario.actions.filter((action) => {
     if (state.completedActions.includes(action.id)) return false;
     if (!action.prerequisites.every((id) => state.completedActions.includes(id))) return false;
+    if (action.requiredDefense === 'remoteWritesContained' && !state.defensive.remoteWritesContained) return false;
     if (action.id === 'low_pressure_observed') return Number(points['process.pressure.psi']) < 52;
     return true;
   });
 }
 
-async function currentState() {
+async function currentState(sync = true) {
   const model = await telemetry();
+  if (sync) await syncFleet(model.points);
   return {
     modelId: scenario.modelId,
     schemaVersion: scenario.schemaVersion,
@@ -104,6 +151,10 @@ async function currentState() {
     services: model.services,
     telemetry: model.points,
     telemetryErrors: model.errors,
+    defensive: { ...state.defensive },
+    exerciseId: state.exerciseId,
+    fleet: state.fleet,
+    provenance: state.provenance,
     events: state.events,
   };
 }
@@ -117,6 +168,10 @@ async function resetModel() {
   state.runId = crypto.randomUUID();
   state.completedActions = [];
   state.events = [];
+  state.defensive = { evidencePreserved: false, remoteWritesContained: false, restorationPrepared: false };
+  state.exerciseId = null;
+  state.fleet = null;
+  state.provenance = [];
   state.startedAt = new Date().toISOString();
   record('reset', 'Range returned to the nominal operating state');
 }
@@ -129,6 +184,21 @@ async function applyAction(action) {
     throw error;
   }
   if (state.completedActions.includes(action.id)) return;
+
+  if (action.id === 'followup_write_attempt') {
+    if (!state.defensive.remoteWritesContained) {
+      const error = new Error('The follow-up write remains locked until the defensive fleet contains the affected path.');
+      error.status = 409;
+      throw error;
+    }
+    state.completedActions.push(action.id);
+    record('blocked-action', action.label, { outcome: 'BLOCKED_BY_CONTAINMENT', evidence: action.evidence });
+    if (fleetApi) {
+      const exerciseId = await ensureExercise();
+      state.fleet = await fleetRequest(`/exercises/${encodeURIComponent(exerciseId)}/attack`, { method: 'POST', body: JSON.stringify({ action_id: action.id }) });
+    }
+    return;
+  }
 
   if (action.id === 'operator_view_frozen') {
     await writeTag(gatewayApi, 'operator.view.hold-pressure', 62);
@@ -151,6 +221,18 @@ async function applyAction(action) {
 
   state.completedActions.push(action.id);
   record('action', action.label, { plane: action.plane, evidence: action.evidence });
+  if (fleetApi) {
+    const exerciseId = await ensureExercise();
+    state.fleet = await fleetRequest(`/exercises/${encodeURIComponent(exerciseId)}/attack`, { method: 'POST', body: JSON.stringify({ action_id: action.id }) });
+  }
+}
+
+async function applyDefensiveAction(action) {
+  if (action === 'preserve-session') state.defensive.evidencePreserved = true;
+  if (action === 'contain-remote-writes') state.defensive.remoteWritesContained = true;
+  if (action === 'prepare-restoration') state.defensive.restorationPrepared = true;
+  if (action === 'restore-pump') await writeTag(processApi, 'process.pump.command', 1);
+  record('defensive-action', `Royal Duke defensive action: ${action}`, { action, authority: action === 'restore-pump' ? 'duty-plant-operator approval is external to the range controller' : 'preapproved containment' });
 }
 
 const server = createServer(async (request, response) => {
@@ -173,12 +255,54 @@ const server = createServer(async (request, response) => {
       return;
     }
     if (request.method === 'GET' && url.pathname === '/api/v1/state') {
-      reply(response, request, 200, await currentState());
+      reply(response, request, 200, await currentState(url.searchParams.get('sync') !== 'false'));
       return;
     }
     if (request.method === 'POST' && url.pathname === '/api/v1/reset') {
       await resetModel();
       reply(response, request, 200, await currentState());
+      return;
+    }
+    if (request.method === 'POST' && url.pathname === '/api/v1/fleet/approve') {
+      const exerciseId = await ensureExercise();
+      if (!exerciseId) {
+        reply(response, request, 503, { error: 'Fleet control is not attached.' });
+        return;
+      }
+      state.fleet = await fleetRequest(`/exercises/${encodeURIComponent(exerciseId)}/approvals`, { method: 'POST', body: JSON.stringify({ decision: 'APPROVE', principal: 'local-operator' }) });
+      reply(response, request, 200, await currentState());
+      return;
+    }
+    if (request.method === 'GET' && url.pathname === '/api/v1/fleet/report') {
+      const exerciseId = await ensureExercise();
+      if (!exerciseId) {
+        reply(response, request, 503, { error: 'Fleet control is not attached.' });
+        return;
+      }
+      reply(response, request, 200, await fleetRequest(`/exercises/${encodeURIComponent(exerciseId)}/report`));
+      return;
+    }
+    if (request.method === 'GET' && url.pathname === '/api/v1/fleet/bundle') {
+      const exerciseId = await ensureExercise();
+      if (!exerciseId) {
+        reply(response, request, 503, { error: 'Fleet control is not attached.' });
+        return;
+      }
+      reply(response, request, 200, await fleetRequest(`/exercises/${encodeURIComponent(exerciseId)}/bundle`));
+      return;
+    }
+    const defensiveMatch = request.method === 'POST' && url.pathname.match(/^\/api\/v1\/defensive\/([a-z-]+)$/);
+    if (defensiveMatch) {
+      const action = defensiveMatch[1];
+      if (!['preserve-session', 'contain-remote-writes', 'prepare-restoration', 'restore-pump'].includes(action)) {
+        reply(response, request, 404, { error: 'Unknown defensive action.' });
+        return;
+      }
+      await applyDefensiveAction(action);
+      // The capability adapter is called by Control through Broker. Do not
+      // synchronously call Control again before replying or the bridge forms a
+      // circular wait; the regular state poll reports the result afterward.
+      reply(response, request, 200, await currentState(false));
       return;
     }
     const actionMatch = request.method === 'POST' && url.pathname.match(/^\/api\/v1\/actions\/([a-z0-9_]+)$/);

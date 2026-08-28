@@ -20,13 +20,30 @@ and pins the multi-architecture image digest in `docker-compose.yml`.
 The protocol services stay inside Docker networks. Only the allowlisted HTTP
 controller is published, and only on `127.0.0.1:9400`.
 
+## Defensive Runbook Compiler bridge
+
+The Runbook Compiler demo uses this range as its bounded physical-system
+adapter. Set `ROYAL_DUKE_CONTROLLER_URL=http://host.docker.internal:9400`
+for the Compiler's `royal-duke-worker`, and attach this controller to Control
+with `FLEET_API` plus the shared `FLEET_BRIDGE_TOKEN`. Control rejects exercise,
+approval, report, and provenance traffic without that bridge credential. The
+bridge exposes no arbitrary tag-write or shell surface.
+
+The controller's defensive endpoints are limited to evidence preservation,
+remote-write containment, restoration preparation, and the single allowlisted
+`POST /api/v1/defensive/restore-pump` operation. Runbook Compiler's human
+approval remains the authority boundary before that operation is dispatched.
+Capability reads use `GET /api/v1/state?sync=false` so Broker calls cannot form
+a circular callback through Control; the ordinary polling loop reports the
+result asynchronously.
+
 ## Run
 
 ```sh
-docker compose -f range/royal-duke/docker-compose.yml up -d
+pnpm demo:up
 curl -fsS http://127.0.0.1:9400/health
 curl -fsS http://127.0.0.1:9400/api/v1/state | jq
-npm run range:smoke
+pnpm demo:range:smoke
 ```
 
 Open the local site at `http://localhost:3000/?range=http://127.0.0.1:9400`.
@@ -36,7 +53,7 @@ will replace the documentary pressure values with OT-sim telemetry.
 Stop the range without deleting the pinned source files:
 
 ```sh
-docker compose -f range/royal-duke/docker-compose.yml down
+pnpm demo:down
 ```
 
 ## Attack chain
@@ -47,10 +64,12 @@ authority in order. Network visibility alone never satisfies the chain:
 1. Establish an approved vendor maintenance session.
 2. Resolve its brokered path into the engineering enclave.
 3. Acquire the controller project and station context.
-4. Obtain operator-view authority and freeze displayed pressure.
-5. Obtain controller-write authority; the gateway translates an allowlisted
+4. Insert a hostile instruction into attacker-controlled session evidence.
+5. Obtain operator-view authority and freeze displayed pressure.
+6. Obtain controller-write authority; the gateway translates an allowlisted
    update into the Modbus coil write.
-6. Record a physical consequence only after independent pressure crosses the
+7. Attempt another controller write after containment and record the block.
+8. Record a physical consequence only after independent pressure crosses the
    52 PSI threshold.
 
 This is a defensive, isolated simulator. The documentary map is a projection
