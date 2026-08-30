@@ -79,7 +79,15 @@ try {
   await call('/api/v1/defensive/contain-remote-writes', 'POST');
   const blocked = await call('/api/v1/actions/followup_write_attempt', 'POST');
   assert(blocked.events.some((event) => event.kind === 'blocked-action'), 'follow-up controller write was not visibly blocked');
-  const final = await call('/api/v1/actions/low_pressure_observed', 'POST');
+  const manualObservation = await fetch(`${base}/api/v1/actions/low_pressure_observed`, { method: 'POST' });
+  assert(manualObservation.status === 409, 'process observation was incorrectly exposed as a manual story action');
+  let final = blocked;
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    final = await call('/api/v1/state');
+    if (final.completedActions.includes('low_pressure_observed')) break;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  assert(final.completedActions.includes('low_pressure_observed'), 'low-pressure evidence was not derived from process telemetry');
   assert(final.stage === 5, 'final consequence gate did not complete');
   passed = true;
   console.log(

@@ -30,7 +30,7 @@
     {
       "id": "owner",
       "type": "external",
-      "label": "Lance's Google account",
+      "label": "Authorized operator",
       "sublabel": "Only authorized human",
       "pos": [40, 110],
       "size": [170, 76]

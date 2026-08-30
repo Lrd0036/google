@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Royal Duke · Google Cloud Deployment Architecture",
+    "quality_profile": "showcase",
+    "visual_preset": "blueprint",
+    "viewBox": [1600, 860],
+    "views": [
+      { "id": "operatorPath", "label": "Operator access", "focus": ["operator", "webEntry", "control", "firestore"], "note": "One authorized Google account reaches the console; Firestore remains the canonical incident record." },
+      { "id": "agentPath", "label": "Managed agent fleet", "focus": ["control", "gateway", "modelArmor", "registry", "agentRuntime", "contextOps"], "note": "Distinct registered agents receive governed task envelopes and return recommendations without operational tools." },
+      { "id": "actionPath", "label": "Bounded process action", "focus": ["control", "actionServices", "localRange"], "note": "Signed grants cross the cloud-to-range boundary through a constrained bridge; raw PLC protocols never enter Google Cloud." }
+    ]
+  },
+  "components": [
+    { "id": "operator", "type": "external", "label": "Authorized operator", "tag": "ONE GOOGLE ACCOUNT", "pos": [40, 323], "size": [160, 76] },
+    { "id": "webEntry", "type": "frontend", "label": "IAP + Cloud Run console", "tag": "PRIVATE WEB ENTRY", "pos": [240, 320], "size": [200, 82] },
+    { "id": "control", "type": "backend", "label": "Cloud Run · Control", "tag": "RBIR AUTHORITY OWNER", "pos": [480, 320], "size": [200, 82] },
+    { "id": "gateway", "type": "security", "label": "Agent Gateway", "tag": "ENFORCE", "pos": [720, 320], "size": [180, 82] },
+    { "id": "modelArmor", "type": "security", "label": "Model Armor", "tag": "CONTENT VERDICT", "pos": [940, 320], "size": [180, 82] },
+    { "id": "agentRuntime", "type": "cloud", "label": "Vertex AI Agent Runtime", "tag": "6 ADK AGENTS", "pos": [1160, 320], "size": [220, 82] },
+    { "id": "firestore", "type": "database", "label": "Firestore", "tag": "INCIDENT TRUTH", "pos": [480, 90], "size": [200, 76] },
+    { "id": "pubsub", "type": "messagebus", "label": "Pub/Sub", "tag": "EVENT / RESUME", "pos": [720, 90], "size": [180, 76] },
+    { "id": "registry", "type": "cloud", "label": "Agent Registry + Identity", "tag": "SPIFFE / REVISIONS", "pos": [1160, 90], "size": [220, 82] },
+    { "id": "actionServices", "type": "security", "label": "Cloud Run · Broker + Worker", "tag": "SIGNED GRANTS ONLY", "pos": [220, 550], "size": [230, 82] },
+    { "id": "localRange", "type": "external", "label": "Authenticated bridge + OT-sim", "tag": "FICTIONAL P-101 RANGE", "pos": [520, 550], "size": [250, 82] },
+    { "id": "contextOps", "type": "database", "label": "Memory Bank + Cloud Trace", "tag": "MEMORY / OTEL", "pos": [1160, 550], "size": [220, 82] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Google Cloud · us-central1", "wraps": ["webEntry", "control", "gateway", "modelArmor", "agentRuntime", "firestore", "pubsub", "registry", "actionServices", "contextOps"], "pad": 24 },
+    { "kind": "security-group", "label": "Governed agent plane", "wraps": ["gateway", "modelArmor", "agentRuntime", "registry", "contextOps"], "pad": 20 },
+    { "kind": "region", "label": "Local isolated process boundary", "wraps": ["localRange"], "pad": 20 }
+  ],
+  "connections": [
+    { "id": "operatorWeb", "from": "operator", "to": "webEntry", "label": "Google OAuth / IAP", "variant": "emphasis", "fromSide": "right", "toSide": "left", "labelAt": [220, 305] },
+    { "id": "webControl", "from": "webEntry", "to": "control", "label": "HTTPS API + SSE", "variant": "emphasis", "labelAt": [460, 305] },
+    { "id": "controlGateway", "from": "control", "to": "gateway", "label": "fixed task envelope", "variant": "security", "labelAt": [700, 305] },
+    { "id": "gatewayArmor", "from": "gateway", "to": "modelArmor", "label": "inspect content", "variant": "security", "labelAt": [920, 305] },
+    { "id": "armorRuntime", "from": "modelArmor", "to": "agentRuntime", "label": "screened request", "variant": "security", "labelAt": [1140, 305] },
+    { "id": "controlFirestore", "from": "control", "to": "firestore", "label": "canonical state", "fromSide": "top", "toSide": "bottom", "labelAt": [580, 220] },
+    { "id": "controlPubsub", "from": "control", "to": "pubsub", "label": "event / resume transport", "fromSide": "top", "toSide": "bottom", "labelAt": [710, 220] },
+    { "id": "registryRuntime", "from": "registry", "to": "agentRuntime", "label": "revision + identity", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "labelAt": [1270, 220] },
+    { "id": "runtimeControl", "from": "agentRuntime", "to": "control", "label": "structured recommendation", "variant": "dashed", "fromSide": "bottom", "toSide": "bottom", "via": [[1270, 470], [580, 470]], "labelAt": [980, 460] },
+    { "id": "runtimeContext", "from": "agentRuntime", "to": "contextOps", "label": "memory retrieval + spans", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelAt": [1375, 485] },
+    { "id": "controlActions", "from": "control", "to": "actionServices", "label": "signed action grant", "variant": "security", "fromSide": "bottom", "toSide": "top", "via": [[580, 510], [335, 510]], "labelAt": [455, 500] },
+    { "id": "actionsRange", "from": "actionServices", "to": "localRange", "label": "single-use command", "variant": "security", "labelAt": [485, 646] },
+    { "id": "rangeControl", "from": "localRange", "to": "control", "label": "telemetry + command result", "variant": "dashed", "fromSide": "bottom", "toSide": "left", "via": [[645, 700], [120, 700], [120, 450], [460, 450], [460, 361]], "labelAt": [280, 690] }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "Managed fleet evidence", "items": ["Six Agent Runtime resources with Registry revisions and distinct identities", "Gateway, Model Armor, Memory Bank, Firestore, Pub/Sub, and Trace appear as live provenance"] },
+    { "dot": "amber", "title": "Hybrid evidence boundary", "items": ["Google Cloud owns reasoning, governance, state, messaging, and audit", "The physical process remains a fictional localhost-only OT-sim reached by a bounded bridge"] }
+  ]
+}

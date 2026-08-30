@@ -48,7 +48,7 @@ export class GeminiFetchTransport implements GeminiTransport {
   async generate(request: GeminiGenerateRequest): Promise<unknown> {
     const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), request.timeoutMs ?? 30_000);
     try {
-      const response = await fetch(`${this.baseUrl}/models/${encodeURIComponent(request.model)}:generateContent?key=${encodeURIComponent(this.apiKey)}`, { method: 'POST', signal: controller.signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ systemInstruction: { parts: [{ text: request.systemInstruction }] }, contents: request.contents, generationConfig: { responseMimeType: 'application/json', responseSchema: request.responseSchema, candidateCount: 1, temperature: request.temperature ?? 0 } }) });
+      const response = await fetch(`${this.baseUrl}/models/${encodeURIComponent(request.model)}:generateContent`, { method: 'POST', signal: controller.signal, headers: { 'content-type': 'application/json', 'x-goog-api-key': this.apiKey }, body: JSON.stringify({ systemInstruction: { parts: [{ text: request.systemInstruction }] }, contents: request.contents, generationConfig: { responseMimeType: 'application/json', responseSchema: request.responseSchema, candidateCount: 1, temperature: request.temperature ?? 0 } }) });
       if (!response.ok) throw new Error(`Gemini request failed with HTTP ${response.status}`);
       return response.json();
     } finally { clearTimeout(timeout); }

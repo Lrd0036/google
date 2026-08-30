@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import './styles/index.css';
 type Mode='DEMO'|'LIVE'|'OFFLINE'; type Tab='overview'|'approvals'|'lint';
 interface Meta { data_mode:Mode; control_status:'REACHABLE'|'UNREACHABLE'|'STALE'; checked_at:string; fresh_until:string; benchmark:{status:'PASS'|'FAIL'|'NO_CURRENT_EVIDENCE';report_sha256?:string;corpus_sha256?:string;submission_sha256?:string;verified_at?:string;fresh_until?:string}; }
 interface Execution { id:string;name:string;status:string;node:string;progress:number;tone:'good'|'warn';detail:string; }

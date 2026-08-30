@@ -56,11 +56,28 @@ The site is an eleven-scene guided attack and response on a graded satellite glo
 
 1. The camera flies from orbit into Ashburn / Sterling (Data Center Alley).
 2. Paper beacons mark real Loudoun halls; scenario overlays mark Royal Duke HQ, the water plant, and vendor access.
-3. In detached mode, play the briefing or jump scenes. Once attached, the chapter controls lock and the Control Panel becomes the only driver of the map.
+3. The storyteller has no independent scene controls. Its chapter, text, map state, and measurements follow the canonical Control stream.
 4. **Runbook & authority** shows the deterministic, compiled-action, and human-approval boundaries.
 5. **Control panel** becomes the live cockpit when the same-origin range gateway attaches the site to OT-sim and the defensive fleet.
+6. **Open in new window** launches a console-only view for a second display. It remains authenticated on the same origin and subscribes to the same incident rather than creating a separate run.
 
 Reduced-motion browsers skip the intro fly and autoplay.
+
+### Record the complete incident
+
+Run the deterministic demo and record the actual browser-rendered incident:
+
+```sh
+pnpm demo:record
+```
+
+The command starts the bounded local stack when needed, resets the exercise,
+drives the attack through the visible Control Panel, waits through the real
+15-second detection and 30-second recovery predicates, and writes a WebM to
+`experience/royal-duke/output/playwright/recordings/`. If `ffmpeg` is available,
+it also emits an H.264 MP4. Use `pnpm demo:record -- --headed` to watch the
+recording run, or `pnpm demo:record -- --skip-stack` when the full stack is
+already attached.
 
 ---
 
@@ -300,12 +317,15 @@ Satellite imagery: Esri, Maxar, Earthstar Geographics. Building extrusions: Open
 
 | Key | Action |
 | --- | --- |
-| `Space` | Play / pause the detached briefing |
-| `→` | Advance one scene while detached |
-| `←` | Go back one scene while detached |
 | `Esc` | Skip intro, or close Runbook / Attack surface |
 
-On-screen while detached: **Play briefing**, **Advance**, scene rail, **Runbook & authority**, **Control panel**. Attached mode replaces the transport with `CONTROL STREAM · LIVE`.
+The storyteller has no play, advance, or scene-selection control. The scene rail
+is a read-only projection of canonical range, fleet, approval, and process
+state. While detached, the map remains at an unavailable baseline and directs
+the operator to the Control panel. The only user-driven transitions are
+currently available red-team actions and the explicit duty-operator approval.
+Low-pressure detection, investigation, containment, and verification are
+derived from authoritative events and telemetry.
 
 ---
 

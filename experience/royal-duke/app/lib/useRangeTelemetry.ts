@@ -24,7 +24,7 @@ export type RangeState = {
     trace_id?: string;
     campaign?: { received: number; routine: number; decoys: number; correlated_anomalies: number; causal_events: number; authoritative_facts: number };
     facts?: Array<{ fact_id: string; label: string; status: 'PENDING' | 'PROVEN'; evidence_ids: string[] }>;
-    activities?: Array<{ activity_id: string; agent_name: string; status: string; summary: string; decision?: string; evidence_ids: string[] }>;
+    activities?: Array<{ activity_id: string; agent_name: string; status: string; execution_mode?: 'LIVE_MODEL' | 'DETERMINISTIC_POLICY' | 'DETERMINISTIC_FALLBACK' | 'UNAVAILABLE'; summary: string; decision?: string; evidence_ids: string[] }>;
     divergence_elapsed_seconds?: number;
     recovery_elapsed_seconds?: number;
     recovery_started_at?: string;

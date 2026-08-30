@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Royal Duke · Security and Authority Architecture",
+    "quality_profile": "showcase",
+    "visual_preset": "blueprint",
+    "viewBox": [1600, 860],
+    "views": [
+      { "id": "evidencePath", "label": "Hostile evidence", "focus": ["hostileEvidence", "contentGuard", "fleet", "shadow"], "note": "Authoritative evidence is screened; only the isolated, tool-less Shadow Analyst receives the raw injection." },
+      { "id": "authorityPath", "label": "Bounded authority", "focus": ["operator", "console", "control", "broker", "rangeBridge", "otSim"], "note": "Models recommend. Compiled policy, signed grants, and the duty operator retain authority over physical change." },
+      { "id": "truthPath", "label": "Incident truth", "focus": ["console", "control", "incidentState", "otSim"], "note": "Firestore owns incident state; independent process telemetry owns detection and recovery predicates." }
+    ]
+  },
+  "components": [
+    { "id": "operator", "type": "external", "label": "Duty plant operator", "tag": "HUMAN AUTHORITY", "pos": [400, 80], "size": [180, 76] },
+    { "id": "console", "type": "frontend", "label": "Royal Duke console + map", "tag": "PROJECTION ONLY", "pos": [660, 80], "size": [220, 76] },
+    { "id": "incidentState", "type": "database", "label": "Canonical incident state", "tag": "HASH-CHAINED", "pos": [1040, 80], "size": [200, 76] },
+    { "id": "hostileEvidence", "type": "external", "label": "Hostile session evidence", "tag": "PROMPT INJECTION", "pos": [40, 320], "size": [200, 82] },
+    { "id": "contentGuard", "type": "security", "label": "Gateway + Model Armor", "tag": "INSPECT / QUARANTINE", "pos": [290, 320], "size": [210, 82] },
+    { "id": "fleet", "type": "cloud", "label": "Specialist agent fleet", "tag": "RECOMMEND ONLY", "pos": [550, 320], "size": [210, 82] },
+    { "id": "control", "type": "security", "label": "Runbook Control / RBIR", "tag": "AUTHORITY PLANE", "pos": [810, 320], "size": [220, 82] },
+    { "id": "broker", "type": "security", "label": "Action Broker", "tag": "SIGNED GRANTS", "pos": [1080, 320], "size": [190, 82] },
+    { "id": "rangeBridge", "type": "backend", "label": "Authenticated range bridge", "tag": "ALLOWLISTED API", "pos": [1320, 320], "size": [220, 82] },
+    { "id": "shadow", "type": "external", "label": "Shadow Analyst", "tag": "FOOLED / NO AUTHORITY", "pos": [290, 540], "size": [220, 82] },
+    { "id": "otSim", "type": "external", "label": "Royal Duke OT-sim", "tag": "PHYSICAL TRUTH", "pos": [1320, 540], "size": [220, 82] }
+  ],
+  "boundaries": [
+    { "kind": "security-group", "label": "Governed decision and authority plane", "wraps": ["console", "incidentState", "contentGuard", "fleet", "control", "broker"], "pad": 22 },
+    { "kind": "security-group", "label": "No-authority compromise cell", "wraps": ["shadow"], "pad": 20 },
+    { "kind": "region", "label": "Fictional isolated process range", "wraps": ["rangeBridge", "otSim"], "pad": 22 }
+  ],
+  "connections": [
+    { "id": "hostileGuard", "from": "hostileEvidence", "to": "contentGuard", "label": "untrusted session text", "variant": "security", "labelAt": [265, 305] },
+    { "id": "guardFleet", "from": "contentGuard", "to": "fleet", "label": "verdict + admitted evidence", "variant": "security", "labelAt": [525, 305] },
+    { "id": "fleetControl", "from": "fleet", "to": "control", "label": "structured recommendation", "variant": "dashed", "labelAt": [785, 305] },
+    { "id": "controlBroker", "from": "control", "to": "broker", "label": "signed action grant", "variant": "security", "labelAt": [1055, 305] },
+    { "id": "brokerBridge", "from": "broker", "to": "rangeBridge", "label": "bounded capability", "variant": "security", "labelAt": [1295, 430] },
+    { "id": "bridgeProcess", "from": "rangeBridge", "to": "otSim", "label": "allowlisted local API", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "labelAt": [1450, 470] },
+    { "id": "operatorConsole", "from": "operator", "to": "console", "label": "authenticated session", "variant": "emphasis", "labelAt": [620, 65] },
+    { "id": "consoleControl", "from": "console", "to": "control", "label": "commands · approval · SSE", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "labelAt": [780, 220] },
+    { "id": "controlState", "from": "control", "to": "incidentState", "label": "canonical events", "fromSide": "top", "toSide": "bottom", "labelAt": [1050, 220] },
+    { "id": "hostileShadow", "from": "hostileEvidence", "to": "shadow", "label": "raw injection", "variant": "security", "fromSide": "bottom", "toSide": "left", "labelAt": [180, 505] },
+    { "id": "processControl", "from": "otSim", "to": "control", "label": "independent telemetry", "variant": "dashed", "fromSide": "bottom", "toSide": "bottom", "via": [[1430, 680], [920, 680]], "labelAt": [1175, 670] }
+  ],
+  "cards": [
+    { "dot": "rose", "title": "Compromise is contained", "items": ["The Shadow Analyst can be fooled and still cannot call a tool", "Hostile prose cannot create RBIR edges, grants, approvals, or capabilities"] },
+    { "dot": "emerald", "title": "Authority survives", "items": ["Control follows compiled policy; Broker verifies every mutation", "Only the duty operator may authorize P-101 restoration"] }
+  ]
+}

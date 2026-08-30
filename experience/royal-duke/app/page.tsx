@@ -1,49 +1,45 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import AttackSurface from './components/AttackSurface';
 import DefenseBrief from './components/DefenseBrief';
 import DocumentaryMap from './components/DocumentaryMap';
 import FilmOverlay from './components/FilmOverlay';
 import TitleSequence from './components/TitleSequence';
 import { usePrefersReducedMotion } from './lib/motion';
-import { deriveSceneIndex, STAGES } from './lib/scenario';
+import { deriveNarrativePresentation, THRESHOLDS } from './lib/scenario';
 import { useRangeTelemetry } from './lib/useRangeTelemetry';
 
 function isFiniteNumber(value: number | undefined): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
+function subscribeToLocation() {
+  return () => {};
+}
+
+function isConsoleWindow() {
+  return new URLSearchParams(window.location.search).get('view') === 'console';
+}
+
 export default function Home() {
   const reduced = usePrefersReducedMotion();
   const [intro, setIntro] = useState(!reduced);
-  const [replayStage, setReplayStage] = useState(0);
-  const [playing, setPlaying] = useState(false);
   const [defenseOpen, setDefenseOpen] = useState(false);
   const [surfaceOpen, setSurfaceOpen] = useState(false);
+  const consoleWindow = useSyncExternalStore(subscribeToLocation, isConsoleWindow, () => false);
   const openedLiveCockpit = useRef(false);
   const range = useRangeTelemetry();
-  const controlled = Boolean(range.endpoint);
-  const stage = controlled ? deriveSceneIndex(range.state) : replayStage;
-  const current = STAGES[stage];
+  const narrative = deriveNarrativePresentation(range.state);
+  const stage = narrative.stage;
   const livePhysical = range.state?.telemetry['process.pressure.psi'];
   const liveOperator = range.state?.telemetry['operator.pressure.psi'];
-  const useLiveTelemetry = range.connection === 'online' && isFiniteNumber(livePhysical) && isFiniteNumber(liveOperator);
-  const physicalPressure = useLiveTelemetry ? livePhysical : current.fallbackPhysicalPressurePsi;
-  const operatorPressure = useLiveTelemetry ? liveOperator : current.fallbackOperatorPressurePsi;
+  const physicalPressure = isFiniteNumber(livePhysical) ? livePhysical : undefined;
+  const operatorPressure = isFiniteNumber(liveOperator) ? liveOperator : undefined;
 
   useEffect(() => {
-    if (!playing || intro || controlled) return;
-    const timer = window.setTimeout(() => {
-      const terminal = current.activation.statuses?.some((status) => status === 'COMPLETED' || status === 'ESCALATED');
-      if (terminal || stage >= STAGES.length - 1) {
-        setPlaying(false);
-        return;
-      }
-      setReplayStage((value) => Math.min(STAGES.length - 1, value + 1));
-    }, STAGES[stage].durationMs);
-    return () => window.clearTimeout(timer);
-  }, [playing, stage, intro, current.activation.statuses, controlled]);
+    if (consoleWindow) document.title = 'Royal Duke Control Console';
+  }, [consoleWindow]);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -52,17 +48,11 @@ export default function Home() {
         else if (intro) setIntro(false);
         return;
       }
-      if (defenseOpen || controlled || event.target instanceof HTMLInputElement) return;
-      if (event.key === ' ' && !intro) {
-        event.preventDefault();
-        setPlaying((value) => !value);
-      }
-      if (event.key === 'ArrowRight') setReplayStage((value) => Math.min(STAGES.length - 1, value + 1));
-      if (event.key === 'ArrowLeft') setReplayStage((value) => Math.max(0, value - 1));
+      if (defenseOpen || event.target instanceof HTMLInputElement) return;
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [defenseOpen, intro, controlled]);
+  }, [defenseOpen, intro]);
 
   useEffect(() => {
     if (range.connection !== 'online' || !range.state) return;
@@ -70,23 +60,49 @@ export default function Home() {
       if (!openedLiveCockpit.current) {
         openedLiveCockpit.current = true;
         setIntro(false);
-        setPlaying(false);
         setSurfaceOpen(true);
       }
     }, 0);
     return () => window.clearTimeout(timer);
   }, [range.connection, range.state]);
 
+  function openConsoleWindow() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', 'console');
+    const popup = window.open(url.toString(), 'royal-duke-control-console', 'popup=yes,width=1800,height=1100,resizable=yes,scrollbars=yes');
+    popup?.focus();
+  }
+
+  if (consoleWindow) {
+    return (
+      <main className="console-window">
+        <AttackSurface
+          open
+          standalone
+          endpoint={range.endpoint}
+          connection={range.connection}
+          rangeState={range.state}
+          error={range.error}
+          onClose={() => window.close()}
+          onRunAction={(id) => void range.runAction(id)}
+          onReset={() => void range.reset()}
+          onApprove={() => void range.approve()}
+          reportUrl={range.reportUrl}
+        />
+      </main>
+    );
+  }
+
   return (
     <main className="film">
       <DocumentaryMap
         stage={stage}
-        pressure={physicalPressure}
+        pressure={physicalPressure ?? THRESHOLDS.nominalPressurePsi}
+        blackout={narrative.visual.blackout}
         intro={intro}
         reduced={reduced}
         onIntroComplete={() => {
           setIntro(false);
-          if (!reduced) setPlaying(true);
         }}
       />
       <div className="film-grain" aria-hidden="true" />
@@ -100,21 +116,11 @@ export default function Home() {
       {!intro && (
         <FilmOverlay
           stage={stage}
-          controlled={controlled}
-          playing={playing}
+          connection={range.connection}
+          hasCanonicalState={Boolean(range.state)}
           operatorPressure={operatorPressure}
           physicalPressure={physicalPressure}
-          log={current.log}
-          onPlay={() => setPlaying((value) => !value)}
-          onReset={() => {
-            setReplayStage(0);
-            setPlaying(false);
-          }}
-          onAdvance={() => setReplayStage((value) => Math.min(STAGES.length - 1, value + 1))}
-          onStage={(index) => {
-            setPlaying(false);
-            setReplayStage(index);
-          }}
+          narrative={narrative}
           onDefend={() => setDefenseOpen(true)}
           onInspect={() => setSurfaceOpen(true)}
         />
@@ -126,12 +132,12 @@ export default function Home() {
       />
       <AttackSurface
         open={surfaceOpen}
-        documentaryStage={stage}
         endpoint={range.endpoint}
         connection={range.connection}
         rangeState={range.state}
         error={range.error}
         onClose={() => setSurfaceOpen(false)}
+        onOpenWindow={openConsoleWindow}
         onRunAction={(id) => void range.runAction(id)}
         onReset={() => void range.reset()}
         onApprove={() => void range.approve()}

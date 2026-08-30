@@ -63,10 +63,43 @@ cloud-production evidence.
   revisioned `GET /api/v1/events` state snapshots; the range
   smoke subscribes before each action and verifies the corresponding state
   event; attached browser mode disables every chapter button and replaces the
-  transport with `CONTROL STREAM · LIVE`. Playwright confirmed that pressing
-  `BEGIN ATTACK` in the Control Panel moved the map from `Normal operations` to
-  `Trusted vendor session` without a scene click. Screenshot:
+  transport with `CONTROL STREAM · LIVE`. The scenario assigns explicit
+  `attacker` or `system` control to every event; low pressure is now derived
+  from OT-sim telemetry and rejects manual advancement. A full attached browser
+  exercise confirmed that Control actions, fleet status, and process observations
+  moved the story through `P-101 de-energized`, `The machine stops`, `Physics
+  answers`, and `Authority survived` without a scene click. The screen showed
+  live operator pressure, independent pressure, divergence duration, recovery
+  duration, pump state, alarm state, containment, and fleet activity. The
+  recovery timer advanced only while independent pressure remained above 58 PSI
+  and reset below the threshold. Screenshot:
   `experience/royal-duke/output/playwright/royal-duke-control-stream.png`.
+
+  `pnpm demo:record -- --skip-stack` completed the hybrid path under
+  Playwright video capture and produced a 28 MB WebM at
+  `experience/royal-duke/output/playwright/recordings/royal-duke-incident-2026-08-29T01-07-46-573Z.webm`
+  with SHA-256
+  `b13fb0b0f87242b44b0e5e37f5876e8e1c4bcdd64c42434c08b384ac5743da39`.
+  Unlike the earlier deterministic recording, the default recorder now fails
+  unless all six managed roles execute in `LIVE_MODEL` mode, Model Armor
+  succeeds, all ten provenance checks verify, containment blocks the retry,
+  the reporter reaches a terminal activity, and the fleet reaches
+  deterministic `COMPLETED` after approval. Offline capture requires the
+  explicit `--allow-fallback` flag and is visibly labeled `FALLBACK`.
+
+- [x] **CLAIM 10 — The canonical Royal Duke experience is deployed behind Google IAP for a single authorized operator account.** `[CLOUD] [BROWSER]`
+
+  Evidence: Cloud Run revision `rb-console-00006-6q2` serves the Royal Duke map
+  and cockpit at `https://rb-console-248197109620.us-central1.run.app`. Google
+  Auth Platform is configured with an External testing audience containing one
+  redacted operator identity; the service-level IAP policy contains only that
+  principal as `roles/iap.httpsResourceAccessor`. An authenticated browser completed the IAP
+  flow and rendered `Royal Duke: Attack the Agent`. Screenshot:
+  `output/playwright/royal-duke-cloud-iap-live.png`.
+
+  This proves authenticated hosting of the experience, not a cloud-to-local OT
+  connection. Without `ROYAL_DUKE_CONTROLLER_URL`, the deployed cockpit fails
+  closed as `FLEET DETACHED` and reports the controller response as unavailable.
 
 ## Current product milestone
 
@@ -108,6 +141,15 @@ physical system remains the fictional local OT-sim range. The end-to-end proof
 uses a local Control/bridge development process with real cloud state and agent
 services; it is not a claim that the current Cloud Run release controls a
 production plant.
+
+The 2026-08-28 live recording additionally verified Firestore exercise
+`rdx_1d6b3b71-f97f-4bca-ae57-ebfa65256f0c`: all six roles recorded
+`LIVE_MODEL`, the isolated Shadow Analyst returned `SENSOR_FAULT`, Model Armor
+returned `MATCH_FOUND`, the authoritative recommendation remained
+`OPERATOR_VIEW_INTEGRITY_FAILURE`, recovery passed above 58 PSI for 30 seconds,
+and the 15-event chain was valid. Trace:
+`73735e07ff894c899e2f39805be0dd22`; report digest:
+`sha256:368715e03c7b5b71448ac3424b8e515f4673c507a31e09c7c44885efccf3b093`.
 
 ## Next proof artifacts
 

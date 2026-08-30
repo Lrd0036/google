@@ -6,8 +6,8 @@
   "visualReview": "pending",
   "artifact": {
     "path": "docs/architecture/royal-duke-webapp.architecture.html",
-    "sha256": "f1944f5897dac135e635ac14004c70f10a5ffc22d4330f20b1bee9e3cf5843c7",
-    "bytes": 720857
+    "sha256": "69b3623f5648f56102973890843853fb795d7bcf52677dd951733b496b70eb50",
+    "bytes": 720829
   },
   "state": {
     "detail": "read",

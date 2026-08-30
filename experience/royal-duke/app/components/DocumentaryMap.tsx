@@ -13,13 +13,13 @@ import {
   INTRO_SHOT,
   NODES,
   SHOTS,
-  STAGES,
   siteCompromised,
 } from '../lib/scenario';
 
 type Props = {
   stage: number;
   pressure: number;
+  blackout: boolean;
   intro: boolean;
   reduced: boolean;
   onIntroComplete: () => void;
@@ -28,6 +28,7 @@ type Props = {
 export default function DocumentaryMap({
   stage,
   pressure,
+  blackout,
   intro,
   reduced,
   onIntroComplete,
@@ -254,11 +255,11 @@ export default function DocumentaryMap({
     const map = mapRef.current;
     if (!map?.getLayer('satellite')) return;
     try {
-      map.setPaintProperty('satellite', 'raster-brightness-max', STAGES[stage].visual.blackout ? 0.48 : 0.94);
+      map.setPaintProperty('satellite', 'raster-brightness-max', blackout ? 0.48 : 0.94);
     } catch {
       /* style may still be loading */
     }
-  }, [stage]);
+  }, [blackout]);
 
   return (
     <div className="world" ref={rootRef}>

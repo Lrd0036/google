@@ -4,41 +4,41 @@ import { useLayoutEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { useAnimatedNumber } from '../lib/motion';
 import { EXPERIENCE, STAGES, THRESHOLDS } from '../lib/scenario';
+import type { NarrativePresentation } from '../lib/scenario';
 
 type Props = {
   stage: number;
-  controlled: boolean;
-  playing: boolean;
-  operatorPressure: number;
-  physicalPressure: number;
-  log: readonly string[];
-  onPlay: () => void;
-  onReset: () => void;
-  onAdvance: () => void;
-  onStage: (index: number) => void;
+  connection: 'detached' | 'connecting' | 'online' | 'degraded';
+  hasCanonicalState: boolean;
+  operatorPressure: number | undefined;
+  physicalPressure: number | undefined;
+  narrative: NarrativePresentation;
   onDefend: () => void;
   onInspect: () => void;
 };
 
 export default function FilmOverlay({
   stage,
-  controlled,
-  playing,
+  connection,
+  hasCanonicalState,
   operatorPressure,
   physicalPressure,
-  log,
-  onPlay,
-  onReset,
-  onAdvance,
-  onStage,
+  narrative,
   onDefend,
   onInspect,
 }: Props) {
-  const current = STAGES[stage];
+  const current = narrative;
   const titleRef = useRef<HTMLDivElement>(null);
-  const op = useAnimatedNumber(operatorPressure, 900);
-  const phys = useAnimatedNumber(physicalPressure, 1100);
-  const deceptive = Math.abs(operatorPressure - physicalPressure) > 0.4;
+  const op = useAnimatedNumber(operatorPressure ?? 0, 900);
+  const phys = useAnimatedNumber(physicalPressure ?? 0, 1100);
+  const hasOperator = typeof operatorPressure === 'number' && Number.isFinite(operatorPressure);
+  const hasPhysical = typeof physicalPressure === 'number' && Number.isFinite(physicalPressure);
+  const deceptive = hasOperator && hasPhysical && Math.abs(operatorPressure - physicalPressure) > 0.4;
+  const streamLabel = !hasCanonicalState
+    ? 'CONTROL STREAM · DETACHED'
+    : connection === 'online'
+      ? 'CONTROL STREAM · LIVE'
+      : 'CONTROL STREAM · LAST VERIFIED STATE';
 
   useLayoutEffect(() => {
     const root = titleRef.current;
@@ -61,7 +61,7 @@ export default function FilmOverlay({
         </div>
         <div className="mast-actions">
           <div className="clock">
-            <span>Story time</span>
+            <span>Incident time</span>
             <b>T+ {current.storyTime}</b>
           </div>
           <div className="mast-links">
@@ -82,7 +82,7 @@ export default function FilmOverlay({
       </div>
 
       <aside className="wire">
-        {log.map((line) => (
+        {current.log.map((line) => (
           <p key={line}>{line}</p>
         ))}
       </aside>
@@ -91,7 +91,7 @@ export default function FilmOverlay({
         <section className={`lower-third${deceptive ? ' is-split' : ''}${current.visual.contained ? ' is-held' : ''}`}>
           <div>
             <span>Operator view</span>
-            <strong>{op.toFixed(1)} {EXPERIENCE.process.pressureUnit}</strong>
+            <strong>{hasOperator ? op.toFixed(1) : '—'} {EXPERIENCE.process.pressureUnit}</strong>
             <small>{current.operatorDetail}</small>
           </div>
           <div>
@@ -99,9 +99,9 @@ export default function FilmOverlay({
             <strong>{current.event}</strong>
             <small>{current.visual.contained ? 'Compiled authority plane engaged' : current.subtitle}</small>
           </div>
-          <div className={physicalPressure < THRESHOLDS.lowPressurePsi && !current.visual.recovered ? 'is-alert' : ''}>
+          <div className={hasPhysical && physicalPressure < THRESHOLDS.lowPressurePsi && !current.visual.recovered ? 'is-alert' : ''}>
             <span>Physical truth</span>
-            <strong>{phys.toFixed(1)} {EXPERIENCE.process.pressureUnit}</strong>
+            <strong>{hasPhysical ? phys.toFixed(1) : '—'} {EXPERIENCE.process.pressureUnit}</strong>
             <small>{current.physicalDetail}</small>
           </div>
         </section>
@@ -112,8 +112,8 @@ export default function FilmOverlay({
               key={item.short}
               type="button"
               className={index === stage ? 'is-active' : index < stage ? 'is-done' : ''}
-              disabled={controlled}
-              onClick={() => onStage(index)}
+              disabled
+              aria-current={index === stage ? 'step' : undefined}
             >
               <span>{String(index).padStart(2, '0')}</span>
               {item.short}
@@ -121,21 +121,11 @@ export default function FilmOverlay({
           ))}
         </nav>
 
-        {controlled ? <div className="transport is-controlled">
-          <span><i /> CONTROL STREAM · LIVE</span>
+        <div className="transport is-controlled">
+          <span><i /> {streamLabel}</span>
           <button type="button" className="play" onClick={onInspect}>Open control panel</button>
-          <small>Map and simulator follow canonical Control state</small>
-        </div> : <div className="transport">
-          <button type="button" onClick={onReset}>
-            Reset
-          </button>
-          <button type="button" className="play" onClick={onPlay}>
-            {playing ? 'Pause' : 'Play briefing'}
-          </button>
-          <button type="button" onClick={onAdvance}>
-            {current.activation.statuses?.some((status) => status === 'COMPLETED' || status === 'ESCALATED') ? 'Hold on outcome' : 'Advance'}
-          </button>
-        </div>}
+          <small>{hasCanonicalState ? 'Map and narrative follow canonical Control, fleet, and process state' : 'Presentation controls cannot advance the incident'}</small>
+        </div>
       </div>
     </div>
   );

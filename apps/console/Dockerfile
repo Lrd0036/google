@@ -3,6 +3,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json ./
 COPY packages/ packages/
+COPY experience/royal-duke/ experience/royal-duke/
 COPY apps/console/ apps/console/
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter "@runbook/console" run build

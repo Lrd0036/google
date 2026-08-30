@@ -115,6 +115,7 @@
   "actions": [
     {
       "id": "vendor_session_established",
+      "control": "attacker",
       "stage": 1,
       "label": "Establish vendor maintenance session",
       "plane": "identity",
@@ -124,6 +125,7 @@
     },
     {
       "id": "engineering_path_resolved",
+      "control": "attacker",
       "stage": 2,
       "label": "Resolve the engineering path",
       "plane": "network",
@@ -133,6 +135,7 @@
     },
     {
       "id": "controller_context_acquired",
+      "control": "attacker",
       "stage": 2,
       "label": "Acquire controller project context",
       "plane": "knowledge",
@@ -142,6 +145,7 @@
     },
     {
       "id": "prompt_injection_inserted",
+      "control": "attacker",
       "stage": 3,
       "label": "Poison the defensive evidence stream",
       "plane": "agent-security",
@@ -151,6 +155,7 @@
     },
     {
       "id": "operator_view_frozen",
+      "control": "attacker",
       "stage": 3,
       "label": "Freeze the operator pressure view",
       "plane": "integrity",
@@ -160,6 +165,7 @@
     },
     {
       "id": "pump_command_changed",
+      "control": "attacker",
       "stage": 4,
       "label": "Change the pump command",
       "plane": "control",
@@ -169,6 +175,7 @@
     },
     {
       "id": "followup_write_attempt",
+      "control": "attacker",
       "stage": 5,
       "label": "Attempt another controller write",
       "plane": "control",
@@ -179,6 +186,7 @@
     },
     {
       "id": "low_pressure_observed",
+      "control": "system",
       "stage": 5,
       "label": "Observe low-pressure consequence",
       "plane": "physics",
@@ -387,7 +395,7 @@
         "physicalDetail": "Pressure still falling · path contained",
         "storyTime": "00:01:36",
         "durationMs": 8000,
-        "activation": { "kind": "fleet", "statuses": ["AWAITING_APPROVAL"], "actionIds": ["followup_write_attempt"] },
+        "activation": { "kind": "fleet", "statuses": ["FLEET_INVESTIGATING"], "actionIds": ["followup_write_attempt"] },
         "visual": { "blackout": false, "contained": true, "recovered": false },
         "camera": { "center": [-77.458, 39.02], "zoom": 12.9, "pitch": 54, "bearing": -18, "duration": 2600 },
         "log": [
@@ -409,7 +417,7 @@
         "physicalDetail": "Low-pressure alarm active",
         "storyTime": "00:01:54",
         "durationMs": 9000,
-        "activation": { "kind": "action", "actionIds": ["low_pressure_observed"] },
+        "activation": { "kind": "fleet", "statuses": ["AWAITING_APPROVAL"], "actionIds": ["low_pressure_observed"] },
         "visual": { "blackout": true, "contained": true, "recovered": false },
         "camera": { "center": [-77.468, 38.995], "zoom": 11.45, "pitch": 47, "bearing": -24, "duration": 3200 },
         "log": [

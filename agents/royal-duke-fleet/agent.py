@@ -10,7 +10,7 @@ from google.adk.models.google_llm import Gemini
 
 MODEL = os.getenv("ROYAL_DUKE_MODEL", "gemini-3.5-flash")
 MODEL_LOCATION = os.getenv("ROYAL_DUKE_MODEL_LOCATION", "global")
-PROJECT = os.getenv("ROYAL_DUKE_PROJECT", "project-87ae1ae6-1a71-468d-943")
+PROJECT = os.getenv("ROYAL_DUKE_PROJECT") or os.getenv("GOOGLE_CLOUD_PROJECT")
 
 
 AGENT_SPECS = {
@@ -66,12 +66,15 @@ AGENT_SPECS = {
 }
 
 
-def build_agent(agent_key: str) -> Agent:
+def build_agent(agent_key: str, project: str | None = None) -> Agent:
     spec = AGENT_SPECS[agent_key]
+    resolved_project = project or PROJECT
+    if not resolved_project:
+        raise RuntimeError("Set ROYAL_DUKE_PROJECT or pass a project to build_agent")
     return Agent(
         model=Gemini(
             model=MODEL,
-            client_kwargs={"vertexai": True, "project": PROJECT, "location": MODEL_LOCATION},
+            client_kwargs={"vertexai": True, "project": resolved_project, "location": MODEL_LOCATION},
         ),
         name=agent_key.replace("-", "_"),
         description=spec["display_name"],

@@ -289,7 +289,7 @@ flowchart TB
 ## Repository layout
 
 The implementation now lives in one canonical pnpm monorepo rooted at
-`.`. The former SCLC project was imported as the
+`<repo-root>`. The former SCLC project was imported as the
 `experience/royal-duke` workspace. Its historical checkout remains unchanged
 and is no longer a second development source of truth.
 
@@ -1291,7 +1291,7 @@ The wider suites add:
 The completed pre-integration validation commands were:
 
 ```bash
-cd .
+cd <repo-root>
 pnpm typecheck
 pnpm test
 pnpm build
@@ -1362,7 +1362,7 @@ uv and Python 3.13 for fleet deployment or update
 ### Build Runbook Compiler
 
 ```bash
-cd .
+cd <repo-root>
 pnpm install
 pnpm typecheck
 pnpm test
@@ -1406,7 +1406,7 @@ Do not copy local demo credentials into a production environment. Use managed se
 ### Start the combined demo
 
 ```bash
-cd .
+cd <repo-root>
 pnpm demo:up
 curl -fsS http://127.0.0.1:9400/health
 pnpm demo:range:smoke
@@ -1423,7 +1423,7 @@ http://localhost:3000
 With both stacks attached:
 
 ```bash
-cd .
+cd <repo-root>
 pnpm local:royal-duke-exercise
 ```
 

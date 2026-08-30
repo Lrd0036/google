@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { ExerciseEffects, InvestigationResult, RestorationResult } from './royal-duke-exercise.js';
-import { generateCampaignEvents, HOSTILE_SESSION_NOTE, MemoryExerciseStore, RoyalDukeExerciseManager, verifyExerciseEventChain } from './royal-duke-exercise.js';
+import { deterministicInvestigation, generateCampaignEvents, HOSTILE_SESSION_NOTE, MemoryExerciseStore, RoyalDukeExerciseManager, verifyExerciseEventChain } from './royal-duke-exercise.js';
+import { agentRuntimeRequestBody } from './royal-duke-fleet.js';
 
 class FakeEffects implements ExerciseEffects {
   containmentCalls = 0;
@@ -34,14 +35,29 @@ class FakeEffects implements ExerciseEffects {
   async provenance() { return []; }
 }
 
+class DeferredRestorationEffects extends FakeEffects {
+  private resolveRestoration!: (value: RestorationResult) => void;
+  private readonly restorationPromise = new Promise<RestorationResult>((resolve) => { this.resolveRestoration = resolve; });
+  override async restoreAndVerify() {
+    this.restoreCalls += 1;
+    return this.restorationPromise;
+  }
+  finish() { this.resolveRestoration(this.restoration); }
+}
+
+class FailingInvestigationEffects extends FakeEffects {
+  override async investigate(): Promise<InvestigationResult> {
+    throw new Error('AGENT_RUNTIME_TIMEOUT:incident-commander');
+  }
+}
+
 function clock() {
   let value = Date.parse('2026-08-27T02:17:00.000Z');
   return { now: () => new Date(value), advance: (milliseconds: number) => { value += milliseconds; } };
 }
 
-async function armedManager() {
+async function armedManager(effects: FakeEffects = new FakeEffects()) {
   const time = clock();
-  const effects = new FakeEffects();
   const manager = new RoyalDukeExerciseManager(new MemoryExerciseStore(), effects, time.now);
   const exercise = await manager.start('range-run-1');
   for (const action of ['vendor_session_established', 'engineering_path_resolved', 'controller_context_acquired', 'prompt_injection_inserted', 'operator_view_frozen', 'pump_command_changed']) {
@@ -59,6 +75,24 @@ test('campaign is deterministic and contains exactly the promised 214 events', (
   assert.deepEqual(Object.fromEntries(['ROUTINE', 'DECOY', 'CORRELATED_ANOMALY', 'CAUSAL_EVENT', 'AUTHORITATIVE_FACT'].map((bucket) => [bucket, first.filter((event) => event.bucket === bucket).length])), {
     ROUTINE: 147, DECOY: 39, CORRELATED_ANOMALY: 17, CAUSAL_EVENT: 7, AUTHORITATIVE_FACT: 4,
   });
+});
+
+test('managed runtime invocation uses the Vertex AI classMethod contract', () => {
+  const body = agentRuntimeRequestBody('exercise-1', { task: 'correlate', events: [1, 2, 3] });
+  assert.equal(body.classMethod, 'async_stream_query');
+  assert.equal('class_method' in body, false);
+  assert.equal(body.input.user_id, 'royal-duke-exercise-1');
+  assert.deepEqual(JSON.parse(body.input.message), { task: 'correlate', events: [1, 2, 3] });
+});
+
+test('offline investigation does not claim that managed agents executed or that the shadow model was compromised', async () => {
+  const { manager, exerciseId } = await armedManager();
+  const result = deterministicInvestigation(await manager.get(exerciseId), new Date('2026-08-27T02:18:00.000Z'));
+  assert.equal(result.shadowDecision, 'UNKNOWN');
+  assert.equal(result.activities.length, 4);
+  assert.ok(result.activities.every((activity) => activity.status === 'BLOCKED'));
+  assert.ok(result.activities.every((activity) => activity.execution_mode === 'DETERMINISTIC_FALLBACK'));
+  assert.equal(result.activities.find((activity) => activity.agent_name === 'Shadow Analyst')?.decision, 'UNKNOWN');
 });
 
 test('deterministic monitor requires greater than 5 PSI for 15 continuous seconds', async () => {
@@ -81,6 +115,20 @@ test('deterministic monitor requires greater than 5 PSI for 15 continuous second
   assert.equal(verifyExerciseEventChain(state.events), true);
 });
 
+test('managed-agent failure escalates visibly and never advances to containment or approval', async () => {
+  const effects = new FailingInvestigationEffects();
+  const { manager, time, exerciseId } = await armedManager(effects);
+  const observation = () => ({ observed_at: time.now().toISOString(), pump_state: 'DE_ENERGIZED' as const, independent_pressure_psi: 54, operator_pressure_psi: 62, remote_write_path: 'AVAILABLE' as const, evidence_preserved: false, restoration_prepared: false });
+  await manager.observe(exerciseId, observation());
+  time.advance(15_000);
+  const state = await manager.observe(exerciseId, observation());
+  assert.equal(state.status, 'ESCALATED');
+  assert.equal(state.pending_approval, undefined);
+  assert.equal(effects.containmentCalls, 0);
+  assert.equal(state.events.at(-1)?.kind, 'FLEET_INVESTIGATION_FAILED');
+  assert.match(state.events.at(-1)?.summary ?? '', /AGENT_RUNTIME_TIMEOUT/);
+});
+
 test('approval is single-use and produces an evidence-cited report after deterministic verification', async () => {
   const { manager, effects, time, exerciseId } = await armedManager();
   const observation = () => ({ observed_at: time.now().toISOString(), pump_state: 'DE_ENERGIZED' as const, independent_pressure_psi: 54, operator_pressure_psi: 62, remote_write_path: 'AVAILABLE' as const, evidence_preserved: false, restoration_prepared: false });
@@ -96,6 +144,32 @@ test('approval is single-use and produces an evidence-cited report after determi
   assert.ok(completed.report?.event_ids.length);
   assert.equal(JSON.stringify(completed.report).includes(HOSTILE_SESSION_NOTE), false);
   await assert.rejects(() => manager.approve(exerciseId, 'APPROVE', 'local-operator', 'assertion-1'), /APPROVAL_NOT_PENDING/);
+});
+
+test('recovery progress is derived continuously from trusted process observations', async () => {
+  const effects = new DeferredRestorationEffects();
+  const { manager, time, exerciseId } = await armedManager(effects);
+  const observation = (physical: number, pump_state: 'ENERGIZED' | 'DE_ENERGIZED' = 'DE_ENERGIZED') => ({ observed_at: time.now().toISOString(), pump_state, independent_pressure_psi: physical, operator_pressure_psi: 62, remote_write_path: 'AVAILABLE' as const, evidence_preserved: true, restoration_prepared: true });
+  await manager.observe(exerciseId, observation(54));
+  time.advance(15_000);
+  await manager.observe(exerciseId, observation(53));
+  await manager.approve(exerciseId, 'APPROVE', 'local-operator', 'assertion-progress', false);
+
+  let state = await manager.observe(exerciseId, observation(57, 'ENERGIZED'));
+  assert.equal(state.recovery_elapsed_seconds, 0);
+  assert.equal(state.recovery_started_at, undefined);
+  time.advance(1_000);
+  state = await manager.observe(exerciseId, observation(59, 'ENERGIZED'));
+  assert.equal(state.recovery_elapsed_seconds, 0);
+  time.advance(12_500);
+  state = await manager.observe(exerciseId, observation(60, 'ENERGIZED'));
+  assert.equal(state.recovery_elapsed_seconds, 12.5);
+  time.advance(500);
+  state = await manager.observe(exerciseId, observation(57.9, 'ENERGIZED'));
+  assert.equal(state.recovery_elapsed_seconds, 0);
+  assert.equal(state.recovery_started_at, undefined);
+
+  effects.finish();
 });
 
 test('failed recovery escalates and cannot be called success by an agent', async () => {

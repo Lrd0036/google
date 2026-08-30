@@ -20,15 +20,18 @@
     "demo:build": "pnpm --filter @lrd0036/sclc build",
     "demo:range:smoke": "pnpm --filter @lrd0036/sclc range:smoke",
     "demo:proof": "pnpm demo:range:smoke && pnpm local:royal-duke-exercise",
-    "fleet:deploy": "uv run --python 3.13 --with-requirements agents/royal-duke-fleet/requirements.txt agents/royal-duke-fleet/deploy.py --project project-87ae1ae6-1a71-468d-943 --location us-central1 --gateway projects/project-87ae1ae6-1a71-468d-943/locations/us-central1/agentGateways/royal-duke-egress",
+    "demo:record": "node scripts/record-royal-duke.mjs",
+    "fleet:deploy": "uv run --python 3.13 --with-requirements agents/royal-duke-fleet/requirements.txt agents/royal-duke-fleet/deploy.py",
     "fleet:update": "pnpm fleet:deploy --update",
     "local:pubsub-smoke": "pnpm --filter @runbook/control build && node scripts/local-pubsub-smoke.mjs",
     "local:cloud-guard-smoke": "pnpm --filter @runbook/control build && node scripts/local-cloud-guard-smoke.mjs",
     "local:stack:config": "docker compose -f infra/docker/docker-compose.yml config",
-    "clean": "pnpm -r run clean"
+    "clean": "pnpm -r run clean",
+    "check:sensitive": "node scripts/check-sensitive-data.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.13.5",
+    "playwright": "^1.62.1",
     "typescript": "^5.7.3"
   },
   "pnpm": {

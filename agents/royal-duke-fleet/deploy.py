@@ -14,6 +14,7 @@ from vertexai import types
 from vertexai.agent_engines import AdkApp
 
 from agent import AGENT_SPECS, build_agent
+from private_files import write_private_json
 
 
 def resource_dict(resource: Any) -> dict[str, Any]:
@@ -75,11 +76,11 @@ def deploy_one(project: str, location: str, bucket: str, gateway: str | None, ke
     if existing:
         remote = client.agent_engines.update(
             name=existing.api_resource.name,
-            agent=AdkApp(agent=build_agent(key)),
+            agent=AdkApp(agent=build_agent(key, project)),
             config=config,
         )
     else:
-        remote = client.agent_engines.create(agent=AdkApp(agent=build_agent(key)), config=config)
+        remote = client.agent_engines.create(agent=AdkApp(agent=build_agent(key, project)), config=config)
     record = resource_dict(remote.api_resource)
     record.update({"key": key, "created": not bool(existing), "updated": bool(existing)})
     return record
@@ -121,9 +122,8 @@ def main() -> None:
         "agents": records,
     }
     output = Path(args.output)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps(result, indent=2))
+    write_private_json(output, result)
+    print(json.dumps({"status": "ok", "agent_count": len(records), "output": str(output)}))
 
 
 if __name__ == "__main__":

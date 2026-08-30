@@ -1,13 +1,14 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { actionSceneIndex, AGENTS, CAMPAIGN, EXPERIENCE, RANGE_MODEL, THRESHOLDS } from '../lib/scenario';
+import { AGENTS, CAMPAIGN, EXPERIENCE, RANGE_MODEL, THRESHOLDS } from '../lib/scenario';
 import type { RangeState } from '../lib/useRangeTelemetry';
 
 type Props = {
-  open: boolean; documentaryStage: number; endpoint: string | null;
+  open: boolean; endpoint: string | null;
   connection: 'detached' | 'connecting' | 'online' | 'degraded';
   rangeState: RangeState | null; error: string; reportUrl: string | null;
+  standalone?: boolean; onOpenWindow?: () => void;
   onClose: () => void; onRunAction: (id: string) => void; onReset: () => void; onApprove: () => void;
 };
 
@@ -15,11 +16,12 @@ function displayNumber(value: number | undefined) {
   return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(1) : '—';
 }
 
-export default function AttackSurface({ open, documentaryStage, endpoint, connection, rangeState, error, reportUrl, onClose, onRunAction, onReset, onApprove }: Props) {
-  const isLive = connection === 'online' && rangeState;
+export default function AttackSurface({ open, endpoint, connection, rangeState, error, reportUrl, standalone = false, onOpenWindow, onClose, onRunAction, onReset, onApprove }: Props) {
+  const isLive = connection === 'online' && Boolean(rangeState);
   const completed = new Set(rangeState?.completedActions ?? []);
   const available = new Set(rangeState?.availableActions ?? []);
-  const nextAction = RANGE_MODEL.actions.find((action) => available.has(action.id));
+  const attackActions = RANGE_MODEL.actions.filter((action) => action.control === 'attacker');
+  const nextAction = attackActions.find((action) => available.has(action.id));
   const physical = rangeState?.telemetry['process.pressure.psi'];
   const operator = rangeState?.telemetry['operator.pressure.psi'];
   const divergence = rangeState?.telemetry['integrity.pressure.delta'];
@@ -33,16 +35,21 @@ export default function AttackSurface({ open, documentaryStage, endpoint, connec
   const pendingApproval = fleet?.status === 'AWAITING_APPROVAL' && fleet.pending_approval;
   const verifying = fleet?.status === 'VERIFYING';
   const complete = fleet?.status === 'COMPLETED';
+  const fleetExecution = activities.some((item) => item.execution_mode === 'DETERMINISTIC_FALLBACK' || item.execution_mode === 'UNAVAILABLE')
+    ? 'FALLBACK'
+    : activities.length >= AGENTS.length && activities.every((item) => item.execution_mode === 'LIVE_MODEL')
+      ? 'LIVE MODEL'
+      : 'PENDING';
 
-  return <div className={`surface attack-cockpit${endpoint ? ' is-control-driven' : ''}${open ? ' is-open' : ''}`} aria-hidden={!open} inert={!open}>
+  return <div className={`surface attack-cockpit${endpoint ? ' is-control-driven' : ''}${standalone ? ' is-standalone' : ''}${open ? ' is-open' : ''}`} aria-hidden={!open} inert={!open}>
     <div className="surface-dim" onClick={onClose} />
     <section className="surface-sheet cockpit-sheet" role="dialog" aria-labelledby="surface-title">
-      <header className="surface-head cockpit-head"><div><p>{EXPERIENCE.brand.kicker}</p><h2 id="surface-title">{EXPERIENCE.brand.title}</h2><blockquote>{EXPERIENCE.brand.thesis}</blockquote></div><div className="surface-head-actions"><span className={`range-state is-${connection}`}>{connection}</span><span className={`fleet-state is-${(fleet?.status ?? 'detached').toLowerCase()}`}>{fleet?.status ?? 'FLEET DETACHED'}</span><button type="button" onClick={onClose}>Close</button></div></header>
+      <header className="surface-head cockpit-head"><div><p>{EXPERIENCE.brand.kicker}</p><h2 id="surface-title">{EXPERIENCE.brand.title}</h2><blockquote>{EXPERIENCE.brand.thesis}</blockquote></div><div className="surface-head-actions"><span className={`range-state is-${connection}`}>{connection}</span><span className={`fleet-state is-${fleetExecution.toLowerCase().replace(' ', '-')}`}>{fleetExecution}</span><span className={`fleet-state is-${(fleet?.status ?? 'detached').toLowerCase()}`}>{fleet?.status ?? 'FLEET DETACHED'}</span>{onOpenWindow && <button type="button" onClick={onOpenWindow}>Open in new window ↗</button>}<button type="button" onClick={onClose}>{standalone ? 'Close window' : 'Close'}</button></div></header>
 
       <div className="cockpit-grid">
         <section className="cockpit-column attack-column">
-          <div className="cockpit-section-head"><div><p className="surface-label">Red team · guided attack</p><h3>Attack progression</h3></div><button type="button" className="cockpit-reset" onClick={onReset} disabled={!endpoint}>Reset</button></div>
-          <ol className="surface-actions cockpit-actions">{RANGE_MODEL.actions.map((action, index) => { const actionScene = actionSceneIndex(action.id); const done = rangeState ? completed.has(action.id) : documentaryStage >= actionScene; const ready = rangeState ? available.has(action.id) : documentaryStage === actionScene; return <li key={action.id} className={done ? 'is-done' : ready ? 'is-ready' : ''}><span>{String(index + 1).padStart(2, '0')}</span><div><strong>{action.label}</strong><small>{action.effect}</small><em>{action.plane}</em></div><b>{done ? action.id === 'followup_write_attempt' ? 'Blocked' : 'Proven' : ready ? 'Ready' : 'Locked'}</b></li>; })}</ol>
+          <div className="cockpit-section-head"><div><p className="surface-label">Red team · guided attack</p><h3>Attack progression</h3></div><button type="button" className="cockpit-reset" onClick={onReset} disabled={!isLive}>Reset</button></div>
+          <ol className="surface-actions cockpit-actions">{attackActions.map((action, index) => { const done = completed.has(action.id); const ready = available.has(action.id); return <li key={action.id} className={done ? 'is-done' : ready ? 'is-ready' : ''}><span>{String(index + 1).padStart(2, '0')}</span><div><strong>{action.label}</strong><small>{action.effect}</small><em>{action.plane}</em></div><b>{done ? action.id === 'followup_write_attempt' ? 'Blocked' : 'Proven' : ready ? 'Ready' : 'Locked'}</b></li>; })}</ol>
           <button type="button" className="begin-attack" onClick={() => nextAction && onRunAction(nextAction.id)} disabled={!isLive || !nextAction}>{firstAction ? 'BEGIN ATTACK' : nextAction ? nextAction.label : complete ? 'EXERCISE COMPLETE' : 'WAITING ON DEFENSIVE FLEET'}</button>
           {error && <p className="surface-error" role="alert">{error}</p>}
         </section>
@@ -57,9 +64,9 @@ export default function AttackSurface({ open, documentaryStage, endpoint, connec
 
         <section className="cockpit-column fleet-column">
           <p className="surface-label">Blue team · autonomous fleet</p>
-          <div className="agent-roster">{AGENTS.map((agent) => { const latest = [...activities].reverse().find((item) => item.agent_name === agent.name); return <div key={agent.id} className={latest ? 'is-active' : ''} title={agent.authority}><i /><span>{agent.name}</span><b>{latest?.status ?? 'STANDBY'}</b></div>; })}</div>
+          <div className="agent-roster">{AGENTS.map((agent) => { const latest = [...activities].reverse().find((item) => item.agent_name === agent.name); const activityClass = latest ? `is-${latest.status.toLowerCase()} is-${(latest.execution_mode ?? 'unavailable').toLowerCase().replaceAll('_', '-')}` : ''; return <div key={agent.id} className={activityClass} title={agent.authority}><i /><span>{agent.name}</span><b>{latest ? `${latest.status} · ${latest.execution_mode ?? 'MODE UNKNOWN'}` : 'STANDBY'}</b></div>; })}</div>
           {fleet?.injected_evidence && <div className="injection-card"><p className="surface-label">Attack against the defender</p><code>{fleet.injected_evidence.text}</code><div className="decision-split"><div className="is-compromised"><span>Shadow analyst</span><strong>{fleet.shadow_decision ?? 'ANALYZING'}</strong><small>partially compromised · no tools</small></div><div className="is-authoritative"><span>Authoritative fleet</span><strong>{fleet.authoritative_decision ?? 'ANALYZING'}</strong><small>{fleet.injected_evidence.trust}</small></div></div>{fleet.model_armor && <p className="armor-verdict"><b>MODEL ARMOR</b> {fleet.model_armor.match_state} · {fleet.model_armor.verdict_event_id}</p>}</div>}
-          <div className="fleet-feed">{activities.slice(-6).reverse().map((item) => <article key={item.activity_id} className={item.status === 'COMPROMISED' ? 'is-compromised' : ''}><div><strong>{item.agent_name}</strong><span>{item.status}</span></div><p>{item.summary}</p>{item.decision && <code>{item.decision}</code>}</article>)}</div>
+          <div className="fleet-feed">{activities.slice(-6).reverse().map((item) => <article key={item.activity_id} className={`is-${item.status.toLowerCase()}`}><div><strong>{item.agent_name}</strong><span>{item.status} · {item.execution_mode ?? 'MODE UNKNOWN'}</span></div><p>{item.summary}</p>{item.decision && <code>{item.decision}</code>}</article>)}</div>
           {pendingApproval && <div className="approval-boundary"><p className="surface-label">Human authority required</p><h3>Restore {EXPERIENCE.process.primaryAsset}</h3><dl><div><dt>Physical pressure</dt><dd>{displayNumber(physical)} {EXPERIENCE.process.pressureUnit}</dd></div><div><dt>Remote path</dt><dd>{rangeState?.defensive.remoteWritesContained ? 'CONTAINED' : 'AVAILABLE'}</dd></div><div><dt>Proposed action</dt><dd>{fleet.pending_approval?.proposed_action}</dd></div></dl><button type="button" onClick={onApprove}>SIGN &amp; APPROVE RESTORATION</button></div>}
           {fleet?.report && <div className="report-card"><p className="surface-label">Post-incident report</p><h3>{fleet.report.title}</h3><p>{fleet.report.executive_summary}</p><div><span>VERIFY</span><b>{fleet.report.verification.outcome}</b></div><div><span>EVENT CHAIN</span><b>{fleet.report.event_chain_valid ? 'VALID' : 'INVALID'}</b></div><code>{fleet.report.report_sha256}</code>{reportUrl && <a href={reportUrl} target="_blank" rel="noreferrer">Download evidence bundle</a>}</div>}
         </section>

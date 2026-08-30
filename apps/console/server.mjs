@@ -194,7 +194,7 @@ export function createConsoleServer(options = {}) {
     response.writeHead(200, {
       'content-type': mime[extname(target)] || 'application/octet-stream',
       'cache-control': target.endsWith('index.html') ? 'no-cache' : 'public, max-age=31536000, immutable',
-      'content-security-policy': "default-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+      'content-security-policy': "default-src 'self'; connect-src 'self' https://server.arcgisonline.com https://*.basemaps.cartocdn.com https://tiles.openfreemap.org; img-src 'self' data: blob: https://server.arcgisonline.com https://*.basemaps.cartocdn.com; style-src 'self' 'unsafe-inline'; script-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
       'permissions-policy': 'camera=(), microphone=(), geolocation=()',
       'referrer-policy': 'no-referrer',
       'x-content-type-options': 'nosniff',

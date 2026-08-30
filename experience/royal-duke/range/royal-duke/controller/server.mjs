@@ -20,6 +20,8 @@ const actionById = new Map(scenario.actions.map((action) => [action.id, action])
 const streamClients = new Set();
 let exerciseCreation = null;
 let observationInFlight = false;
+let actionInFlight = false;
+let actionQueue = Promise.resolve();
 let streamSnapshotInFlight = false;
 let fleetRefreshInFlight = false;
 let stateRevision = 0;
@@ -67,7 +69,7 @@ async function requestJson(url, options = {}) {
 async function fleetRequest(path, options = {}) {
   if (!fleetApi) return null;
   const headers = { 'content-type': 'application/json', ...(fleetBridgeToken ? { 'x-royal-duke-bridge-token': fleetBridgeToken } : {}), ...(options.headers ?? {}) };
-  return requestJson(`${fleetApi}${path}`, { ...options, headers, timeoutMs: 120_000 });
+  return requestJson(`${fleetApi}${path}`, { ...options, headers, timeoutMs: 300_000 });
 }
 
 async function ensureExercise() {
@@ -134,6 +136,20 @@ async function syncFleet(points) {
   }
 }
 
+function serializeAction(work) {
+  const queued = actionQueue.then(async () => {
+    actionInFlight = true;
+    try {
+      while (observationInFlight) await new Promise((resolve) => setTimeout(resolve, 20));
+      return await work();
+    } finally {
+      actionInFlight = false;
+    }
+  });
+  actionQueue = queued.catch(() => undefined);
+  return queued;
+}
+
 async function writeTag(api, tag, value) {
   await requestJson(`${api}/write/${encodeURIComponent(tag)}/${encodeURIComponent(String(value))}`, { method: 'POST' });
 }
@@ -167,6 +183,7 @@ function stage() {
 
 function availableActions(points) {
   return scenario.actions.filter((action) => {
+    if (action.control === 'system') return false;
     if (state.completedActions.includes(action.id)) return false;
     if (!action.prerequisites.every((id) => state.completedActions.includes(id))) return false;
     if (action.requiredDefense === 'remoteWritesContained' && !state.defensive.remoteWritesContained) return false;
@@ -175,9 +192,31 @@ function availableActions(points) {
   });
 }
 
+function automaticConditionSatisfied(action, points) {
+  if (action.id === 'low_pressure_observed') {
+    return Number(points['process.pressure.psi']) < Number(scenario.experience.thresholds.lowPressurePsi);
+  }
+  return false;
+}
+
+async function reconcileAutomaticActions(points) {
+  for (const action of scenario.actions.filter((candidate) => candidate.control === 'system')) {
+    if (state.completedActions.includes(action.id)) continue;
+    if (!action.prerequisites.every((id) => state.completedActions.includes(id))) continue;
+    if (!automaticConditionSatisfied(action, points)) continue;
+    state.completedActions.push(action.id);
+    record('observation', action.label, { outcome: 'DETERMINISTIC_CONDITION_MET', condition: action.condition, evidence: action.evidence });
+    if (fleetApi) {
+      const exerciseId = await ensureExercise();
+      state.fleet = await fleetRequest(`/exercises/${encodeURIComponent(exerciseId)}/attack`, { method: 'POST', body: JSON.stringify({ action_id: action.id }) });
+    }
+  }
+}
+
 async function currentState(sync = true) {
   const model = await telemetry();
-  if (sync) await syncFleet(model.points);
+  if (!actionInFlight) await reconcileAutomaticActions(model.points);
+  if (sync && !actionInFlight) await syncFleet(model.points);
   return {
     revision: ++stateRevision,
     emittedAt: new Date().toISOString(),
@@ -224,7 +263,7 @@ setInterval(() => {
 // exposes intermediate Control states while a managed investigation is still
 // running, instead of hiding them behind one long observation request.
 setInterval(() => {
-  if (!fleetApi || streamClients.size === 0 || observationInFlight) return;
+  if (!fleetApi || streamClients.size === 0 || observationInFlight || actionInFlight) return;
   observationInFlight = true;
   void telemetry()
     .then((model) => submitObservation(model.points))
@@ -356,20 +395,21 @@ const server = createServer(async (request, response) => {
       return;
     }
     if (request.method === 'POST' && url.pathname === '/api/v1/reset') {
-      await resetModel();
-      const snapshot = await currentState(false);
+      const snapshot = await serializeAction(async () => {
+        await resetModel();
+        return currentState(false);
+      });
       publishState(snapshot);
       reply(response, request, 200, snapshot);
       return;
     }
     if (request.method === 'POST' && url.pathname === '/api/v1/fleet/approve') {
-      const exerciseId = await ensureExercise();
-      if (!exerciseId) {
-        reply(response, request, 503, { error: 'Fleet control is not attached.' });
-        return;
-      }
-      state.fleet = await fleetRequest(`/exercises/${encodeURIComponent(exerciseId)}/approvals`, { method: 'POST', body: JSON.stringify({ decision: 'APPROVE', principal: 'local-operator' }) });
-      const snapshot = await currentState(false);
+      const snapshot = await serializeAction(async () => {
+        const exerciseId = await ensureExercise();
+        if (!exerciseId) throw Object.assign(new Error('Fleet control is not attached.'), { status: 503 });
+        state.fleet = await fleetRequest(`/exercises/${encodeURIComponent(exerciseId)}/approvals`, { method: 'POST', body: JSON.stringify({ decision: 'APPROVE', principal: 'local-operator' }) });
+        return currentState(false);
+      });
       publishState(snapshot);
       reply(response, request, 200, snapshot);
       return;
@@ -415,8 +455,14 @@ const server = createServer(async (request, response) => {
         reply(response, request, 404, { error: 'Unknown action. Only scenario-defined actions are accepted.' });
         return;
       }
-      await applyAction(action);
-      const snapshot = await currentState(false);
+      if (action.control === 'system') {
+        reply(response, request, 409, { error: 'This event is derived from authoritative process state and cannot be advanced manually.' });
+        return;
+      }
+      const snapshot = await serializeAction(async () => {
+        await applyAction(action);
+        return currentState(false);
+      });
       publishState(snapshot);
       reply(response, request, 200, snapshot);
       return;

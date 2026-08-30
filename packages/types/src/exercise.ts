@@ -55,6 +55,7 @@ export const AgentActivitySchema = z.object({
   agent_id: z.string().min(1),
   agent_name: z.string().min(1),
   status: z.enum(['QUEUED', 'RUNNING', 'COMPLETED', 'BLOCKED', 'COMPROMISED']),
+  execution_mode: z.enum(['LIVE_MODEL', 'DETERMINISTIC_POLICY', 'DETERMINISTIC_FALLBACK', 'UNAVAILABLE']).optional(),
   summary: z.string().min(1),
   decision: z.string().optional(),
   evidence_ids: z.array(z.string()).default([]),

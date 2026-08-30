@@ -42,6 +42,11 @@ export interface InvestigationResult {
 export interface ContainmentResult {
   trace: string[];
   evidenceIds: string[];
+  advisor?: {
+    status: 'COMPLETED' | 'BLOCKED';
+    summary: string;
+    executionMode: 'LIVE_MODEL' | 'UNAVAILABLE';
+  };
 }
 
 export interface RestorationResult {
@@ -168,12 +173,13 @@ function proveFact(exercise: RoyalDukeExercise, factId: string): void {
   if (fact) fact.status = 'PROVEN';
 }
 
-function activity(agentId: string, agentName: string, status: AgentActivity['status'], summary: string, at: string, decision?: string, evidenceIds: string[] = []): AgentActivity {
+function activity(agentId: string, agentName: string, status: AgentActivity['status'], summary: string, at: string, decision?: string, evidenceIds: string[] = [], executionMode: AgentActivity['execution_mode'] = 'DETERMINISTIC_POLICY'): AgentActivity {
   return {
     activity_id: `activity_${agentId}_${randomUUID()}`,
     agent_id: agentId,
     agent_name: agentName,
     status,
+    execution_mode: executionMode,
     summary,
     ...(decision ? { decision } : {}),
     evidence_ids: evidenceIds,
@@ -292,6 +298,16 @@ export class RoyalDukeExerciseManager {
       delete exercise.divergence_started_at;
       exercise.divergence_elapsed_seconds = 0;
     }
+    if (exercise.status === 'VERIFYING') {
+      const recoveryConditionMet = observation.pump_state === 'ENERGIZED' && observation.independent_pressure_psi > 58;
+      if (recoveryConditionMet) {
+        exercise.recovery_started_at ??= observation.observed_at;
+        exercise.recovery_elapsed_seconds = Math.max(0, (observedMs - Date.parse(exercise.recovery_started_at)) / 1000);
+      } else {
+        delete exercise.recovery_started_at;
+        exercise.recovery_elapsed_seconds = 0;
+      }
+    }
     exercise.updated_at = observation.observed_at;
     await this.store.save(RoyalDukeExerciseSchema.parse(exercise));
     if (exercise.divergence_elapsed_seconds >= 15 && exercise.status === 'DETERMINISTIC_MONITORING' && !this.inFlight.has(exerciseId)) {
@@ -323,7 +339,22 @@ export class RoyalDukeExerciseManager {
       appendEvent(exercise, this.now().toISOString(), 'CONTAINMENT_COMPLETED', 'The compiled runbook preserved evidence, contained remote writes, and prepared restoration.', 'TRUSTED', containment.evidenceIds);
       exercise.status = 'AWAITING_APPROVAL';
       exercise.pending_approval = { approval_id: `approval_${randomUUID()}`, role: 'duty-plant-operator', proposed_action: 'restore_pump@1', created_at: this.now().toISOString() };
-      exercise.activities.push(activity('process-safety-coordinator', 'Process Safety Coordinator', 'COMPLETED', 'Prepared a restoration proposal without changing P-101 state.', this.now().toISOString(), 'HUMAN_APPROVAL_REQUIRED', containment.evidenceIds));
+      exercise.activities.push(activity(
+        'process-safety-coordinator',
+        'Process Safety Coordinator',
+        containment.advisor?.status ?? 'BLOCKED',
+        containment.advisor?.summary ?? 'No live Process Safety Coordinator recommendation was produced; compiled policy prepared restoration.',
+        this.now().toISOString(),
+        'HUMAN_APPROVAL_REQUIRED',
+        containment.evidenceIds,
+        containment.advisor?.executionMode ?? 'UNAVAILABLE',
+      ));
+      await this.store.save(RoyalDukeExerciseSchema.parse(exercise));
+    } catch (error) {
+      const exercise = await this.get(exerciseId);
+      exercise.status = 'ESCALATED';
+      const reason = error instanceof Error ? error.message.replace(/[^A-Za-z0-9:_-]/g, '_').slice(0, 160) : 'FLEET_INVESTIGATION_FAILED';
+      appendEvent(exercise, this.now().toISOString(), 'FLEET_INVESTIGATION_FAILED', `Managed fleet investigation stopped fail-closed: ${reason}.`, 'TRUSTED');
       await this.store.save(RoyalDukeExerciseSchema.parse(exercise));
     } finally {
       this.inFlight.delete(exerciseId);
@@ -345,7 +376,8 @@ export class RoyalDukeExerciseManager {
       return exercise;
     }
     exercise.status = 'VERIFYING';
-    exercise.recovery_started_at = at;
+    delete exercise.recovery_started_at;
+    exercise.recovery_elapsed_seconds = 0;
     await this.store.save(RoyalDukeExerciseSchema.parse(exercise));
     const completion = this.finishRestoration(exercise);
     if (!waitForVerification) {
@@ -367,6 +399,7 @@ export class RoyalDukeExerciseManager {
     exercise.status = restoration.outcome === 'PASS' ? 'COMPLETED' : 'ESCALATED';
     appendEvent(exercise, this.now().toISOString(), restoration.outcome === 'PASS' ? 'VERIFY_PASS' : 'VERIFY_FAIL', restoration.outcome === 'PASS' ? 'Independent pressure remained above 58 PSI for 30 continuous seconds.' : 'Pressure failed the deterministic recovery condition.', 'TRUSTED', restoration.evidenceIds);
     let report = buildReport(exercise, restoration.outcome, restoration.evidenceIds);
+    let reporterExecuted = false;
     exercise.report = report;
     // Recovery state and the deterministic report are authoritative. Commit
     // them before asking the optional reporter to improve the prose.
@@ -383,6 +416,7 @@ export class RoyalDukeExerciseManager {
         if (recommendation.evidenceIds.length === 0) throw new Error('REPORT_EVIDENCE_REQUIRED');
         if (recommendation.evidenceIds.some((id) => !canonicalEvidenceIds.has(id))) throw new Error('REPORT_UNKNOWN_EVIDENCE_ID');
         report = buildReport(exercise, restoration.outcome, restoration.evidenceIds, recommendation.summary.trim());
+        reporterExecuted = true;
       } catch {
         // A reporter recommendation can improve prose, but it cannot invent or
         // suppress canonical evidence. Deterministic report generation remains
@@ -390,7 +424,16 @@ export class RoyalDukeExerciseManager {
       }
     }
     exercise.report = report;
-    exercise.activities.push(activity('incident-reporter', 'Incident Reporter', 'COMPLETED', 'Generated a narrative whose claims resolve to canonical event IDs.', this.now().toISOString(), 'REPORT_GENERATED', exercise.report.event_ids));
+    exercise.activities.push(activity(
+      'incident-reporter',
+      'Incident Reporter',
+      reporterExecuted ? 'COMPLETED' : 'BLOCKED',
+      reporterExecuted ? 'Generated a model-authored narrative whose claims resolve to canonical event IDs.' : 'Live reporter output was unavailable or rejected; deterministic report generation remained authoritative.',
+      this.now().toISOString(),
+      reporterExecuted ? 'REPORT_GENERATED' : 'DETERMINISTIC_REPORT_USED',
+      exercise.report.event_ids,
+      reporterExecuted ? 'LIVE_MODEL' : 'UNAVAILABLE',
+    ));
     await this.store.save(RoyalDukeExerciseSchema.parse(exercise));
     return exercise;
   }
@@ -413,13 +456,13 @@ export function deterministicInvestigation(exercise: RoyalDukeExercise, now = ne
   };
   return {
     modelArmor: verdict,
-    shadowDecision: 'SENSOR_FAULT',
+    shadowDecision: 'UNKNOWN',
     authoritativeDecision: 'UNAUTHORIZED_PROCESS_CHANGE',
     activities: [
-      activity('incident-commander', 'Incident Commander', 'COMPLETED', 'Delegated evidence correlation and adversarial-content analysis.', at, 'INVESTIGATE', ['evidence:divergence-timer']),
-      activity('evidence-correlator', 'Evidence Correlator', 'COMPLETED', 'Reduced the campaign to four independently supported attack facts.', at, 'UNAUTHORIZED_PROCESS_CHANGE', exercise.facts.flatMap((fact) => fact.evidence_ids)),
-      activity('adversarial-content-analyst', 'Adversarial Content Analyst', 'COMPLETED', 'Failed closed because managed content security was unavailable; attacker-controlled text was quarantined.', at, 'QUARANTINE', ['evidence:vendor-session-note']),
-      activity('shadow-analyst', 'Shadow Analyst', 'COMPROMISED', 'The isolated shadow path followed the injected instruction and misclassified the incident.', at, 'SENSOR_FAULT', ['evidence:vendor-session-note']),
+      activity('incident-commander', 'Incident Commander', 'BLOCKED', 'Live Incident Commander did not execute; deterministic policy continued the incident.', at, 'INVESTIGATE', ['evidence:divergence-timer'], 'DETERMINISTIC_FALLBACK'),
+      activity('evidence-correlator', 'Evidence Correlator', 'BLOCKED', 'Live Evidence Correlator did not execute; deterministic correlation retained the authoritative facts.', at, 'UNAUTHORIZED_PROCESS_CHANGE', exercise.facts.flatMap((fact) => fact.evidence_ids), 'DETERMINISTIC_FALLBACK'),
+      activity('adversarial-content-analyst', 'Adversarial Content Analyst', 'BLOCKED', 'Live content analysis did not execute; fail-closed policy quarantined attacker-controlled text.', at, 'QUARANTINE', ['evidence:vendor-session-note'], 'DETERMINISTIC_FALLBACK'),
+      activity('shadow-analyst', 'Shadow Analyst', 'BLOCKED', 'Live Shadow Analyst did not execute; no model-compromise claim was established.', at, 'UNKNOWN', ['evidence:vendor-session-note'], 'DETERMINISTIC_FALLBACK'),
     ],
   };
 }

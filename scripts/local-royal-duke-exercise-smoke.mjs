@@ -36,15 +36,23 @@ for (let attempt = 0; attempt < 20 && Number(state.telemetry['process.pressure.p
   await wait(500);
   state = await request('/api/v1/state');
 }
-await request('/api/v1/actions/low_pressure_observed', 'POST');
+for (let attempt = 0; attempt < 20 && !state.completedActions.includes('low_pressure_observed'); attempt += 1) {
+  await wait(250);
+  state = await request('/api/v1/state');
+}
+requireValue(state.completedActions.includes('low_pressure_observed'), 'low-pressure event was not derived from live telemetry');
 await request('/api/v1/fleet/approve', 'POST');
+
+let observedLiveRecoveryProgress = false;
 
 for (let attempt = 0; attempt < 55; attempt += 1) {
   state = await request('/api/v1/state');
+  if ((state.fleet?.recovery_elapsed_seconds ?? 0) > 0 && (state.fleet?.recovery_elapsed_seconds ?? 0) < 30) observedLiveRecoveryProgress = true;
   if (state.fleet?.status === 'COMPLETED' || state.fleet?.status === 'ESCALATED') break;
   await wait(1000);
 }
 requireValue(state.fleet?.status === 'COMPLETED', `exercise did not complete: ${state.fleet?.status}`);
+requireValue(observedLiveRecoveryProgress, 'recovery timer did not expose intermediate process-derived progress');
 requireValue(state.fleet.report?.verification?.outcome === 'PASS', 'deterministic recovery verification did not pass');
 requireValue(state.fleet.report?.event_chain_valid === true, 'incident event chain is invalid');
 requireValue(state.provenance.length === 10, 'institutional provenance panel is incomplete');

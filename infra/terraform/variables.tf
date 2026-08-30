@@ -52,7 +52,6 @@ variable "enable_invocation_edges" {
   default     = false
 }
 variable "iap_bootstrap_user" {
-  description = "Initial IAP user granted Console access"
+  description = "Initial IAP principal granted Console access; supply via an untracked tfvars file or TF_VAR_iap_bootstrap_user"
   type        = string
-  default     = "user:user@example.com"
 }

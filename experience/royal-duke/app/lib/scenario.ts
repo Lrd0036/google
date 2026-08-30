@@ -11,6 +11,7 @@ export type CameraShot = {
 
 export type ScenarioAction = {
   id: string;
+  control: 'attacker' | 'system';
   stage: number;
   label: string;
   plane: string;
@@ -145,9 +146,27 @@ export type SiteEdge = {
 };
 
 export type NarrativeRangeState = {
+  emittedAt?: string;
+  startedAt?: string;
   completedActions: string[];
-  defensive?: { remoteWritesContained?: boolean };
-  fleet?: null | { status?: string };
+  telemetry?: Record<string, number>;
+  defensive?: {
+    evidencePreserved?: boolean;
+    remoteWritesContained?: boolean;
+    restorationPrepared?: boolean;
+  };
+  events?: Array<{ summary: string }>;
+  fleet?: null | {
+    status?: string;
+    divergence_elapsed_seconds?: number;
+    recovery_elapsed_seconds?: number;
+    activities?: Array<{ summary: string }>;
+  };
+};
+
+export type NarrativePresentation = ScenarioScene & {
+  stage: number;
+  connected: boolean;
 };
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -191,6 +210,7 @@ export function validateScenarioModel() {
   for (const action of RANGE_MODEL.actions) {
     assert(!actionIds.has(action.id), `duplicate action ${action.id}`);
     actionIds.add(action.id);
+    assert(action.control === 'attacker' || action.control === 'system', `${action.id} has invalid control ownership`);
     for (const prerequisite of action.prerequisites) {
       assert(RANGE_MODEL.actions.some((candidate) => candidate.id === prerequisite), `${action.id} references unknown prerequisite ${prerequisite}`);
     }
@@ -298,7 +318,98 @@ export function deriveSceneIndex(state: NarrativeRangeState | null) {
     if (state.fleet?.status && scene.activation.statuses?.includes(state.fleet.status)) active = Math.max(active, index);
   });
   if (state.defensive?.remoteWritesContained) active = Math.max(active, at('fleet-containment'));
+  if (state.fleet?.status === 'FLEET_INVESTIGATING') active = Math.max(active, at('fleet-containment'));
+  if (state.fleet?.status === 'AWAITING_APPROVAL') active = Math.max(active, at('human-approval'));
+  if (state.fleet?.status === 'RESTORING' || state.fleet?.status === 'VERIFYING') active = Math.max(active, at('recovery-verification'));
+  if (state.fleet?.status === 'COMPLETED') return at('incident-complete');
+  if (state.fleet?.status === 'ESCALATED') return at('incident-escalated');
   return active;
+}
+
+function elapsedClock(startedAt?: string, emittedAt?: string) {
+  const start = startedAt ? Date.parse(startedAt) : Number.NaN;
+  const end = emittedAt ? Date.parse(emittedAt) : Number.NaN;
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return '--:--:--';
+  const elapsed = Math.max(0, Math.floor((end - start) / 1000));
+  const hours = Math.floor(elapsed / 3600);
+  const minutes = Math.floor((elapsed % 3600) / 60);
+  const seconds = elapsed % 60;
+  return [hours, minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':');
+}
+
+export function deriveNarrativePresentation(state: NarrativeRangeState | null): NarrativePresentation {
+  const stage = deriveSceneIndex(state);
+  const scene = STAGES[stage];
+  if (!state) {
+    return {
+      ...scene,
+      stage,
+      connected: false,
+      storyTime: '--:--:--',
+      event: 'Control stream unavailable',
+      operatorDetail: 'No authoritative operator reading',
+      physicalDetail: 'No authoritative process reading',
+      subtitle: 'The map is waiting for canonical Control and process state. Presentation controls cannot advance the incident.',
+      log: ['No canonical incident state is attached.', 'Connect the Royal Duke range to begin the exercise.'],
+      visual: { blackout: false, contained: false, recovered: false },
+    };
+  }
+
+  const telemetry = state.telemetry ?? {};
+  const physical = telemetry['process.pressure.psi'];
+  const operator = telemetry['operator.pressure.psi'];
+  const pumpEnergized = telemetry['process.pump.actual'] === 1;
+  const lowPressure = telemetry['alarm.low-pressure'] === 1 || (Number.isFinite(physical) && physical < THRESHOLDS.lowPressurePsi);
+  const completed = new Set(state.completedActions);
+  const status = state.fleet?.status;
+  const eventByStatus: Record<string, string> = {
+    ARMED: 'Exercise armed',
+    ATTACK_IN_PROGRESS: 'Attack path advancing',
+    DETERMINISTIC_MONITORING: `Divergence predicate ${Math.min(THRESHOLDS.incidentContinuousSeconds, state.fleet?.divergence_elapsed_seconds ?? 0).toFixed(1)} / ${THRESHOLDS.incidentContinuousSeconds} sec`,
+    FLEET_INVESTIGATING: 'Defensive fleet investigating',
+    AWAITING_APPROVAL: 'Approval required',
+    RESTORING: 'Authorized restoration running',
+    VERIFYING: `Recovery verification ${Math.min(THRESHOLDS.recoveryContinuousSeconds, state.fleet?.recovery_elapsed_seconds ?? 0).toFixed(1)} / ${THRESHOLDS.recoveryContinuousSeconds} sec`,
+    COMPLETED: 'VERIFY: PASS',
+    ESCALATED: 'VERIFY: FAIL',
+    BRIDGE_DEGRADED: 'Fleet bridge degraded',
+  };
+  const liveLines = [
+    ...(state.fleet?.activities ?? []).slice(-2).reverse().map((item) => item.summary),
+    ...(state.events ?? []).slice(0, 2).map((item) => item.summary),
+  ].filter((line, index, lines) => line && lines.indexOf(line) === index).slice(0, 3);
+
+  let title = scene.title;
+  let kicker = scene.kicker;
+  let subtitle = scene.subtitle;
+  if (status === 'FLEET_INVESTIGATING') {
+    title = 'The defenders answer';
+    kicker = 'Scene 06 · Defensive response';
+    subtitle = state.fleet?.activities?.at(-1)?.summary ?? 'The deterministic trigger has handed trusted evidence to the defensive fleet.';
+  } else if (status === 'DETERMINISTIC_MONITORING') {
+    subtitle = `Operator and independent pressure differ by ${Number.isFinite(operator) && Number.isFinite(physical) ? Math.abs(operator - physical).toFixed(1) : '—'} PSI. The incident does not exist until that condition persists for ${THRESHOLDS.incidentContinuousSeconds} seconds.`;
+  } else if (status === 'VERIFYING' || status === 'RESTORING') {
+    subtitle = `P-101 restoration is authorized. Independent pressure—not a model judgment—must remain above ${THRESHOLDS.recoveryPressurePsi} PSI for ${THRESHOLDS.recoveryContinuousSeconds} seconds.`;
+  }
+
+  return {
+    ...scene,
+    stage,
+    connected: true,
+    title,
+    kicker,
+    subtitle,
+    storyTime: elapsedClock(state.startedAt, state.emittedAt),
+    event: status ? (eventByStatus[status] ?? status.replaceAll('_', ' ')) : scene.event,
+    operatorDetail: completed.has('operator_view_frozen') ? 'Gateway hold active · source untrusted' : 'Live operator-gateway reading',
+    physicalDetail: `${pumpEnergized ? 'P-101 energized' : 'P-101 de-energized'} · ${lowPressure ? 'low-pressure alarm active' : 'pressure alarm clear'}`,
+    log: liveLines.length > 0 ? liveLines : scene.log,
+    visual: {
+      blackout: Boolean(lowPressure && status !== 'VERIFYING' && status !== 'RESTORING' && status !== 'COMPLETED'),
+      contained: Boolean(state.defensive?.remoteWritesContained),
+      recovered: status === 'COMPLETED',
+    },
+  };
 }
 
 export function siteCompromised(node: SiteNode, stage: number) {
