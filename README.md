@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="#why-this-exists">Why</a> |
+  <a href="#research-findings">Findings</a> |
   <a href="#architecture">Architecture</a> |
   <a href="#quick-start">Quick start</a> |
   <a href="#royal-duke-attack-the-agent">Royal Duke</a> |
@@ -54,6 +55,29 @@ Runbook Compiler separates those concerns:
 If a procedure does not define enough policy to continue, compilation stops.
 Unknown is a valid result.
 
+## Research findings
+
+This project produced two kinds of findings. The institutional-source review
+shaped the authority model in [`spec.md`](./spec.md). Compiler tests and Royal
+Duke runs tested whether those boundaries survived ambiguity, model failure,
+prompt injection, retries, approval, and physical recovery.
+
+| Finding | Evidence | Design consequence |
+| --- | --- | --- |
+| Authentication identifies a subject; it does not grant operational authority | Institutional review plus approval and grant tests | Bind authority to the subject, capability, target, incident trigger, time window, and use count |
+| Ambiguous policy is a safety defect, not an invitation for model judgment | Compiler reject cases for ambiguous predicates, unknown capabilities, and unbounded retries | Stop compilation with a diagnostic until a human supplies the missing rule |
+| Compromising a model does not have to compromise the system | The live Shadow Analyst followed the injected `SENSOR_FAULT` instruction but had no tools, grants, approval role, or process connection | Keep interpretation separate from capability and execution |
+| Content screening is useful but cannot be the only control | Model Armor returned `MATCH_FOUND` in the verified run and was unavailable or incomplete in other paths | Quarantine untrusted evidence on screening failure and preserve deterministic policy underneath it |
+| Authorization and successful execution are different facts | The operator authorized restoration; independent pressure still had to remain above 58 PSI for 30 seconds | Approval permits an attempt; `VERIFY` determines its outcome |
+| Provenance changes what evidence may influence | Raw hostile text compromised the Shadow Analyst; the governed path retained source IDs, trust state, controller evidence, and independent telemetry | Untrusted evidence may be preserved without satisfying an operational predicate |
+| Proof gates are part of the safety argument | Early fallback behavior could complete the control path without proving that managed agents ran | Label fallback explicitly and reject live-proof claims when activity, screening, provenance, containment, or recovery evidence is missing |
+
+The research did **not** establish that Model Armor catches every attack, that
+models can safely receive operational authority, or that this prototype is
+ready to control production infrastructure. RunbookBench also lacks the human
+adjudication needed for a publishable institutional benchmark. Those remain
+open boundaries, not implied successes.
+
 ## What works today
 
 The detailed claim ledger lives in [`PROOF.md`](./PROOF.md). It distinguishes
@@ -67,13 +91,39 @@ unit, local, emulator, browser, live-model, and cloud evidence.
 | Every write must reach verification on every completing path | Compiler diagnostic `RBK-403` |
 | Human approval suspends and resumes execution | Local and emulator proof |
 | Replayed or uncertain mutations are reconciled without duplication | Broker tests |
-| Prompt injection cannot add capabilities or authority | Local, adversarial, and live-model proof |
+| A compromised model did not gain capabilities or authority | Local, adversarial, and live-model proof |
 | RunbookBench evaluates human-adjudicated institutional prose | Harness built; corpus adjudication pending |
 | Royal Duke cockpit is hosted behind Google IAP | Cloud and browser proof |
 
 The Royal Duke range is fictional. Its process model and raw OT protocols run
 locally in Docker. Managed Google Cloud agents and services provide hybrid demo
 evidence, not proof of production-plant control.
+
+### What the runs actually showed
+
+The path to the verified result was uneven. That is part of the evidence, not
+noise to edit out.
+
+| Run outcome | Shadow Analyst | Model Armor and managed fleet | Valid claim |
+| --- | --- | --- | --- |
+| Local or explicit fallback | Deterministic adversarial fixture | Managed services may be unavailable | Compiler, authority, containment, approval, and verification paths work locally |
+| Incomplete live attempt | A runtime may fail to return a usable result | Model Armor, agent activity, trace, or provenance may be unavailable | The run fails the live-proof gate and must not be presented as a successful managed-fleet exercise |
+| Verified live run | Returned `SENSOR_FAULT` and was recorded as `COMPROMISED` | Model Armor returned `MATCH_FOUND`; the authoritative fleet used governed evidence and reached `OPERATOR_VIEW_INTEGRITY_FAILURE` | One agent was fooled, the hostile evidence was quarantined, and the attacker still gained no operational authority |
+
+Earlier code could continue through a deterministic fallback when managed
+agent calls failed. That was useful for exercising the compiled control path,
+but it blurred whether the agents had actually run. The recorder now rejects a
+normal recording unless all six roles report `LIVE_MODEL`, Model Armor returns
+a successful verdict, all ten provenance checks verify, containment blocks the
+second write, and physical recovery passes. `--allow-fallback` is explicit and
+visibly labeled.
+
+Model Armor did not make every model immune. The successful run demonstrates a
+more useful boundary: the unguarded, no-authority Shadow Analyst was
+compromised, while the governed evidence path detected and quarantined the
+instruction before the authoritative fleet acted on it. See
+[`PROOF.md`](./PROOF.md) for the recorded run IDs, hashes, and remaining proof
+gaps.
 
 ## Architecture
 
