@@ -1,5 +1,8 @@
 import type { StyleSpecification } from 'maplibre-gl';
 
+export const SATELLITE_TILE_TEMPLATE =
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+
 export const SATELLITE_STYLE: StyleSpecification = {
   version: 8,
   name: 'Royal Duke satellite',
@@ -7,7 +10,7 @@ export const SATELLITE_STYLE: StyleSpecification = {
   sources: {
     esri: {
       type: 'raster',
-      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+      tiles: [SATELLITE_TILE_TEMPLATE],
       tileSize: 256,
       maxzoom: 19,
       attribution: 'Imagery: Esri, Maxar, Earthstar Geographics',

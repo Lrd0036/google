@@ -63,7 +63,7 @@ export default defineConfig(async () => {
         '/api/royal-duke': {
           target: rangeControllerUrl,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/royal-duke/, '/api/v1'),
+          rewrite: (path: string) => path.replace(/^\/api\/royal-duke/, '/api/v1'),
         },
       },
       ...(isCodexSeatbeltSandbox

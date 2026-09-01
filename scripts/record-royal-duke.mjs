@@ -12,6 +12,10 @@ const skipStack = args.has('--skip-stack');
 const keepServer = args.has('--keep-server');
 const allowFallback = args.has('--allow-fallback');
 const baseUrl = process.env.ROYAL_DUKE_RECORD_URL ?? 'http://127.0.0.1:3000';
+const recordUrl = new URL(baseUrl);
+if (recordUrl.protocol !== 'http:') throw new Error('ROYAL_DUKE_RECORD_URL must use http for the local recorder.');
+const recordHost = recordUrl.hostname;
+const recordPort = recordUrl.port || '80';
 const liveControlUrl = 'http://127.0.0.1:8083';
 const rangeDir = resolve(repoRoot, 'experience/royal-duke');
 const outputDir = resolve(repoRoot, 'experience/royal-duke/output/playwright/recordings');
@@ -190,7 +194,7 @@ try {
 
   if (!(await responds(baseUrl))) {
     log('Starting the Royal Duke web application.');
-    devServer = spawn('pnpm', ['--filter', '@runbook/console', 'dev', '--', '--host', '127.0.0.1', '--port', '3000', '--strictPort'], {
+    devServer = spawn('pnpm', ['--filter', '@runbook/console', 'exec', 'vite', '--host', recordHost, '--port', recordPort, '--strictPort'], {
       cwd: repoRoot,
       env: { ...process.env, ROYAL_DUKE_CONTROLLER_URL: process.env.ROYAL_DUKE_CONTROLLER_URL ?? 'http://127.0.0.1:9400' },
       stdio: ['ignore', 'inherit', 'inherit'],

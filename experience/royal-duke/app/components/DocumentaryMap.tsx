@@ -5,6 +5,7 @@ import { Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { BeaconLayer } from '../lib/beacon-layer';
 import { FALLBACK_STYLE, OPENFREEMAP_SOURCE, SATELLITE_STYLE } from '../lib/map-style';
+import { SatelliteTilePreloader } from '../lib/map-tile-cache';
 import { docEase } from '../lib/motion';
 import { NervousSystem } from '../lib/nervous-system';
 import {
@@ -65,6 +66,12 @@ export default function DocumentaryMap({
       bearing: reduced ? SHOTS[0].bearing : INTRO_SHOT.bearing,
       attributionControl: false,
       fadeDuration: 0,
+      // The story repeatedly revisits the same four local zoom levels. Retain
+      // a larger decoded working set and keep parent tiles alive while their
+      // children load so camera flights do not expose empty frames.
+      maxTileCacheZoomLevels: 12,
+      cancelPendingTileRequestsWhileZooming: false,
+      refreshExpiredTiles: false,
       maxPitch: 80,
       minZoom: 1.15,
       maxZoom: 17.2,
@@ -76,6 +83,10 @@ export default function DocumentaryMap({
     const beacons = new BeaconLayer();
     beacons.setState({ stage, pressure, reduced });
     beaconsRef.current = beacons;
+    const tilePreloader = new SatelliteTilePreloader();
+    // The first flight crosses from the globe to Loudoun. Warm its destination
+    // during the title hold, before the camera begins moving.
+    tilePreloader.enqueue([SHOTS[0]], 'high');
 
     const resizeFx = () => {
       const canvas = canvasEl.current;
@@ -191,6 +202,11 @@ export default function DocumentaryMap({
     });
 
     map.on('resize', resizeFx);
+    const warmUpcomingShots = () => {
+      const nextStage = simRef.current.stage + 1;
+      tilePreloader.enqueue(SHOTS.slice(nextStage, nextStage + 2));
+    };
+    map.on('moveend', warmUpcomingShots);
     let lastW = 0;
     let lastH = 0;
     const ro = new ResizeObserver((entries) => {
@@ -217,6 +233,8 @@ export default function DocumentaryMap({
       window.clearTimeout(fallbackTimer);
       cancelAnimationFrame(raf);
       ro.disconnect();
+      map.off('moveend', warmUpcomingShots);
+      tilePreloader.cancel();
       map.remove();
       mapRef.current = null;
       beaconsRef.current = null;

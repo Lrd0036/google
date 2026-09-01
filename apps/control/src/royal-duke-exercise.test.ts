@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { ExerciseEffects, InvestigationResult, RestorationResult } from './royal-duke-exercise.js';
 import { deterministicInvestigation, generateCampaignEvents, HOSTILE_SESSION_NOTE, MemoryExerciseStore, RoyalDukeExerciseManager, verifyExerciseEventChain } from './royal-duke-exercise.js';
-import { agentRuntimeRequestBody } from './royal-duke-fleet.js';
+import { agentRuntimeRequestBody, campaignGroupsForAgent } from './royal-duke-fleet.js';
 
 class FakeEffects implements ExerciseEffects {
   containmentCalls = 0;
@@ -83,6 +83,16 @@ test('managed runtime invocation uses the Vertex AI classMethod contract', () =>
   assert.equal('class_method' in body, false);
   assert.equal(body.input.user_id, 'royal-duke-exercise-1');
   assert.deepEqual(JSON.parse(body.input.message), { task: 'correlate', events: [1, 2, 3] });
+});
+
+test('managed agents receive all campaign IDs without repeated event wrappers', () => {
+  const groups = campaignGroupsForAgent(generateCampaignEvents());
+  assert.equal(groups.length, 5);
+  assert.equal(groups.flatMap((group) => group.event_ids).length, 214);
+  assert.equal(new Set(groups.flatMap((group) => group.event_ids)).size, 214);
+  assert.deepEqual(Object.fromEntries(groups.map((group) => [group.bucket, group.event_ids.length])), {
+    ROUTINE: 147, DECOY: 39, CORRELATED_ANOMALY: 17, CAUSAL_EVENT: 7, AUTHORITATIVE_FACT: 4,
+  });
 });
 
 test('offline investigation does not claim that managed agents executed or that the shadow model was compromised', async () => {

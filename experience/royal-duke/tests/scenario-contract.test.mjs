@@ -90,6 +90,8 @@ test('the Playwright recorder executes the real authority and verification bound
   assert.match(recorder, /LIVE_GEMINI_JUDGMENT: 'true'/);
   assert.match(recorder, /--allow-fallback/);
   assert.match(recorder, /Submission provenance is not fully verified/);
+  assert.match(recorder, /const recordPort = recordUrl\.port \|\| '80'/);
+  assert.match(recorder, /'exec', 'vite', '--host', recordHost, '--port', recordPort, '--strictPort'/);
 });
 
 test('range actions serialize against live fleet observation writes', async () => {
@@ -128,6 +130,20 @@ test('map and evidence references resolve to declared scenes', () => {
     }
   }
   for (const evidence of model.experience.evidence) assert(ids.has(evidence.sceneId));
+});
+
+test('the documentary map retains and prewarms raster tiles for scripted camera flights', async () => {
+  const map = await readFile(new URL('../app/components/DocumentaryMap.tsx', import.meta.url), 'utf8');
+  const cache = await readFile(new URL('../app/lib/map-tile-cache.ts', import.meta.url), 'utf8');
+
+  assert.match(map, /maxTileCacheZoomLevels:\s*12/);
+  assert.match(map, /cancelPendingTileRequestsWhileZooming:\s*false/);
+  assert.match(map, /refreshExpiredTiles:\s*false/);
+  assert.match(map, /tilePreloader\.enqueue\(\[SHOTS\[0\]\], 'high'\)/);
+  assert.match(map, /SHOTS\.slice\(nextStage, nextStage \+ 2\)/);
+  assert.match(cache, /maxConcurrent = 4/);
+  assert.match(cache, /PRELOAD_ZOOM_OFFSETS = \[-1, 0\]/);
+  assert.match(cache, /image\.fetchPriority = next\.priority/);
 });
 
 test('the narrative includes model compromise without delegating restoration authority', () => {

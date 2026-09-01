@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  // MapLibre creates its worker through a module URL. Prebundling it can leave
+  // Vite pointing at an evicted worker artifact during long recordings.
+  optimizeDeps: { exclude: ['maplibre-gl'] },
   server: {
     port: 3000,
     proxy: {

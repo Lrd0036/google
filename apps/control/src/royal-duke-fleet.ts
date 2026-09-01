@@ -66,6 +66,16 @@ export function agentRuntimeRequestBody(exerciseId: string, payload: unknown) {
   };
 }
 
+export function campaignGroupsForAgent(events: CampaignEvent[]) {
+  const groups = new Map<CampaignEvent['bucket'], { bucket: CampaignEvent['bucket']; trust: CampaignEvent['trust']; event_ids: string[] }>();
+  for (const event of events) {
+    const current = groups.get(event.bucket);
+    if (current) current.event_ids.push(event.event_id);
+    else groups.set(event.bucket, { bucket: event.bucket, trust: event.trust, event_ids: [event.event_id] });
+  }
+  return [...groups.values()];
+}
+
 function agentEventText(value: unknown): string {
   const event = value as { content?: { parts?: Array<{ text?: string }> } };
   return event.content?.parts?.map((part) => part.text ?? '').join('').trim() ?? '';
@@ -302,7 +312,10 @@ async function liveInvestigation(exercise: RoyalDukeExercise): Promise<Investiga
   const runtimeConfigured = Object.keys(fleetRuntimeMap()).length === FLEET_AGENT_KEYS.length;
   if (!runtimeConfigured) throw new Error('LIVE_FLEET_RUNTIME_INCOMPLETE');
   const campaignEvents = generateCampaignEvents();
-  const compactCampaignEvents = campaignEvents.map(({ event_id, bucket, trust }) => ({ event_id, bucket, trust }));
+  // Preserve all source IDs while avoiding 214 repetitions of identical trust
+  // labels. This is the canonical compact representation supplied to the
+  // governed agent path and is less likely to resemble adversarial padding.
+  const compactCampaignEvents = campaignGroupsForAgent(campaignEvents);
   const commanderText = await queryFleetAgent('incident-commander', exercise, {
     task: 'Coordinate specialist review of the complete campaign and return a recommendation only.',
     campaign_events: compactCampaignEvents,

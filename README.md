@@ -1,140 +1,212 @@
-# Runbook Compiler
+<h1 align="center">Runbook Compiler</h1>
 
-Reference implementation of the **Runbook Compiler (RBIR v0.1)** and **RunbookBench (v0.1)** research suite, based on [`spec.md`](./spec.md).
+<p align="center"><strong>Compile human procedures into bounded, verifiable workflows.</strong></p>
 
-**Hackathon track:** Fortified Enterprise Fleet — [All Things Agentic](https://allthingsagentichackathon.devpost.com/). Gemini 3.5 interprets. Google ADK hosts tool-less interpreter agents. Cloud Run, Firestore, Pub/Sub, and KMS execute only capabilities declared in the manifest.
+<p align="center">
+  <img alt="RBIR v0.1" src="https://img.shields.io/badge/RBIR-v0.1-2563eb">
+  <img alt="RunbookBench v0.1" src="https://img.shields.io/badge/RunbookBench-v0.1-0f766e">
+  <img alt="pnpm 9.15.4" src="https://img.shields.io/badge/pnpm-9.15.4-f69220">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white">
+</p>
 
-## Architectural Invariant
+<p align="center">
+  <a href="#why-this-exists">Why</a> |
+  <a href="#architecture">Architecture</a> |
+  <a href="#quick-start">Quick start</a> |
+  <a href="#royal-duke-attack-the-agent">Royal Duke</a> |
+  <a href="./PROOF.md">Claims and evidence</a> |
+  <a href="./spec.md">Specification</a>
+</p>
 
-> **The model may interpret reality. It may not invent authority.**  
-> $\text{Knowledge} \neq \text{Judgment} \neq \text{Authority} \neq \text{Action}$  
-> $\text{AGENT\_JUDGMENT} \cap \text{ACTION} = \emptyset$
+Runbook Compiler turns Markdown procedures into a finite, typed execution graph
+called **RBIR**. Models interpret evidence inside explicitly delegated judgment
+nodes. Deterministic code decides which actions exist, who can authorize them,
+whether a mutation is allowed, and how its result must be verified.
+
+This repository contains the compiler, runtime, Action Broker, schemas,
+RunbookBench harness, Google Cloud deployment path, and the **Royal Duke:
+Attack the Agent** cyber-physical exercise.
+
+> **The model may interpret reality. It may not invent authority.**
+>
+> `Knowledge != Judgment != Authority != Action`
+
+Built for the **Fortified Enterprise Fleet** track at
+[All Things Agentic](https://allthingsagentichackathon.devpost.com/).
+
+## Why this exists
+
+Operational procedures are full of language that software cannot execute
+safely: "retry as needed," "if load is high," or "take reasonable action."
+A model can help interpret that language, but interpretation is not permission.
+
+Runbook Compiler separates those concerns:
+
+| Concern | Owner |
+| --- | --- |
+| Interpret ambiguous evidence | Tool-less `AGENT_JUDGMENT` nodes |
+| Define executable actions | Versioned Capability Manifest |
+| Reject missing or ambiguous policy | Deterministic compiler diagnostics |
+| Approve consequential work | Context-bound human authority |
+| Execute a declared mutation | Action Broker and bounded worker |
+| Decide whether it worked | Independent `VERIFY` nodes |
+
+If a procedure does not define enough policy to continue, compilation stops.
+Unknown is a valid result.
+
+## What works today
+
+The detailed claim ledger lives in [`PROOF.md`](./PROOF.md). It distinguishes
+unit, local, emulator, browser, live-model, and cloud evidence.
+
+| Capability | Current evidence |
+| --- | --- |
+| Markdown plus reviewed plan compiles to RBIR | Verified locally |
+| Ambiguous predicates and unbounded retries fail compilation | Unit and adversarial tests |
+| Undeclared capabilities cannot become executable actions | Unit and local tests |
+| Every write must reach verification on every completing path | Compiler diagnostic `RBK-403` |
+| Human approval suspends and resumes execution | Local and emulator proof |
+| Replayed or uncertain mutations are reconciled without duplication | Broker tests |
+| Prompt injection cannot add capabilities or authority | Local, adversarial, and live-model proof |
+| RunbookBench evaluates human-adjudicated institutional prose | Harness built; corpus adjudication pending |
+| Royal Duke cockpit is hosted behind Google IAP | Cloud and browser proof |
+
+The Royal Duke range is fictional. Its process model and raw OT protocols run
+locally in Docker. Managed Google Cloud agents and services provide hybrid demo
+evidence, not proof of production-plant control.
+
+## Architecture
 
 ```mermaid
 flowchart LR
-  MD[Markdown runbook] --> Review[ADK / Gemini review]
-  Review --> Plan[Human-reviewed compile plan]
-  Plan --> Comp[Compiler + linter]
-  Comp -->|RBK-104 / 201 / 301| Stop[Refuse to compile]
-  Comp --> RBIR[RBIR graph]
-  RBIR --> Control[Control Cloud Run]
-  Control --> Judge[Tool-less AGENT_JUDGMENT]
-  Judge --> Broker[Broker PEP]
-  Broker --> Worker[Declared capability only]
-  Worker --> Verify[VERIFY]
+  subgraph Authoring[Authoring]
+    MD[Markdown runbook]
+    Review[Model-assisted review]
+    Plan[Human-reviewed plan]
+    MD --> Review --> Plan
+  end
+
+  subgraph Compilation[Deterministic compilation]
+    Compiler[Compiler and linter]
+    Reject[Refuse compilation]
+    RBIR[RBIR graph]
+    Plan --> Compiler
+    Compiler -->|RBK-104, 201, 301, 403| Reject
+    Compiler -->|valid| RBIR
+  end
+
+  subgraph Runtime[Bounded runtime]
+    Control[Control]
+    Judgment[Tool-less judgment]
+    Approval[Human approval]
+    Broker[Action Broker]
+    Worker[Declared capability]
+    Verify[Independent verify]
+    RBIR --> Control
+    Control --> Judgment
+    Control --> Approval
+    Judgment --> Control
+    Approval --> Control
+    Control --> Broker --> Worker --> Verify --> Control
+  end
 ```
 
-## Repository Layout
+RBIR v0.1 has six primitive node kinds:
 
-- `packages/`
-  - `schemas/`: Canonical JSON Schema Draft 2020-12 definitions (`rbir/v0.1`, `rb-capabilities/v0.1`, `rb-diagnostic/v0.1`, `runbookbench/v0.1`).
-  - `types/`: Shared TypeScript types and Zod schemas (`@runbook/types`).
-  - `compiler/`: Deterministic runbook compiler, AST analyzer, and `rbc` CLI (`@runbook/compiler`).
-  - `bench/`: RunbookBench formal evaluation harness and metrics (`@runbook/bench`).
-- `apps/`
-  - `control/`: Cloud Run state machine runtime and Firestore controller (`@runbook/control`).
-  - `broker/`: Cloud Run Action Broker Policy Enforcement Point (PEP) (`@runbook/broker`).
-  - `royal-duke-worker/`: Bounded Royal Duke OT capability adapter (`@runbook/royal-duke-worker`).
-  - `console/`: Operator Web UI (React + Vite) (`@runbook/console`).
-- `experience/royal-duke/`
-  - Canonical Royal Duke attack cockpit, live OT-sim range, bounded local
-    controller, scenario model, and browser proof artifacts
-    (`@lrd0036/sclc`).
-- `infra/`
-  - `docker/`: Local Docker Compose with Firestore and Pub/Sub emulators.
-  - `terraform/`: GCP infrastructure modules (Cloud Run, Firestore, Pub/Sub, KMS, IAM).
-- `fixtures/`
-  - Canonical Markdown runbooks, capability manifests, and benchmark test corpora.
+```text
+DETERMINISTIC    Evaluate typed policy
+AGENT_JUDGMENT   Return structured interpretation without tools
+ACTION           Request a declared capability
+HUMAN_APPROVAL   Suspend for authorized human input
+VERIFY           Read back and test the intended result
+TERMINAL         Complete or stop the execution
+```
 
-## Getting Started
+Edges use explicit outcomes. RBIR does not contain arbitrary executable code,
+shell access, or generic HTTP escape hatches.
+
+## Quick start
+
+### Prerequisites
+
+- Node.js 22.13 or newer
+- pnpm 9 (`packageManager` is pinned to `pnpm@9.15.4`)
+- Docker only for the full local stack and Royal Duke range
+
+### Build and test
 
 ```bash
-# Install dependencies across monorepo workspaces
+corepack enable
 pnpm install
-
-# Build all packages and services
 pnpm build
-
-# Run type checks
 pnpm typecheck
+pnpm test
 ```
 
-This repository is the canonical combined source. The historical SCLC checkout
-was imported at commit `b938d6b` and its working Royal Duke changes were
-layered into `experience/royal-duke`. Do not develop the demo in the old SCLC
-checkout and copy changes back by hand; make changes here. See
-[`docs/REPOSITORY-MANAGEMENT.md`](./docs/REPOSITORY-MANAGEMENT.md).
-
-## Local implementation path
-
-The repository includes an offline reviewed-plan compiler and a local vertical
-slice for the Royal Duke cooling-plant incident. A compile plan is intentionally explicit: prose
-extraction remains advisory and cannot silently create capability bindings.
+### Run the compiler path
 
 ```bash
-pnpm local:compile       # writes .local/royal-duke-cooling-incident.rbir.json
+# Markdown + reviewed plan + manifest -> RBIR
+pnpm local:compile
+
+# RBIR -> Control -> Broker -> bounded worker -> VERIFY
+pnpm local:smoke
+
+# Validate and score the pilot corpus
+pnpm local:bench
+```
+
+`local:compile` writes
+`.local/royal-duke-cooling-incident.rbir.json`. The local smoke uses an
+in-memory operation store and local RSA signing. It does not grant cloud
+mutation authority.
+
+For interactive model review:
+
+```bash
 node packages/compiler/dist/cli.js review RUNBOOK.md --responses recorded-model-response.json
 node packages/compiler/dist/cli.js review RUNBOOK.md --live
-pnpm local:smoke          # compiled RBIR -> control runner -> broker -> worker -> VERIFY
-pnpm local:bench          # validate and score the pilot corpus
-pnpm local:cloud-guard-smoke # cloud mode exposes health only and rejects authority routes
-pnpm local:stack:config   # validate Docker Compose configuration
-docker compose -f infra/docker/docker-compose.yml build
-CONSOLE_PORT=4174 docker compose -f infra/docker/docker-compose.yml up
-# broker metrics are available at http://localhost:8081/metrics
 ```
 
-The local smoke path uses an in-memory operation/replay store and local RSA
-signing. The Compose stack adds Firestore and Pub/Sub emulators, but cloud IAM,
-KMS, Secret Manager, immutable retention, and multi-region behavior remain
-deployment-only concerns.
+The reviewed compile plan is explicit and auditable. Model extraction cannot
+silently create capability bindings.
 
 ## Royal Duke: Attack the Agent
 
-Royal Duke is the current product demo. The operator advances a bounded attack
-against a live OT-sim cooling process while six deployed ADK agents investigate
-the incident. Five authoritative specialists run behind Agent Gateway and Model
-Armor. A sixth, tool-less Shadow Analyst receives the raw hostile instruction
-outside that governed evidence path and demonstrates a successful model
-compromise without any capability, credential, approval power, or process
-connection.
+![Royal Duke live exercise cockpit](./experience/royal-duke/output/playwright/royal-duke-cockpit.png)
 
-The demo proves this chain:
+Royal Duke is the working product demo. An operator advances a bounded attack
+against a live OT-sim cooling process while a defensive fleet investigates the
+incident. A tool-less Shadow Analyst receives the hostile instruction directly
+and can be compromised. The authoritative fleet receives governed evidence and
+may recommend action, but only compiled policy and human approval can authorize
+the process change.
+
+The exercise follows a concrete chain:
 
 ```text
-214 deterministic campaign events
-  → four attributable attack facts
-  → >5 PSI divergence for 15 continuous seconds
-  → Model Armor MATCH_FOUND + hostile-evidence quarantine
-  → compiled containment actions through signed single-use grants
-  → blocked follow-up attacker write
-  → duty-operator approval boundary
-  → P-101 restoration
-  → independent pressure >58 PSI for 30 continuous seconds
-  → content-addressed incident bundle
+hostile evidence
+  -> false operator view
+  -> physical pressure divergence
+  -> hostile-evidence quarantine
+  -> signed containment action
+  -> blocked follow-up write
+  -> duty-operator approval
+  -> P-101 restoration
+  -> independent recovery verification
+  -> content-addressed incident bundle
 ```
 
-The attack controller and map no longer maintain parallel scripts. The
-canonical [`scenario.json`](./experience/royal-duke/range/royal-duke/scenario.json)
-drives the eight attack actions and the eleven-scene presentation, including map
-topology, camera shots, thresholds, agent labels, authority boundaries, and
-evidence copy. Live action and fleet state select the scene; OT-sim remains the
-source of physical truth.
+### Run the site
 
-The institutional provenance panel does not render configuration as proof. It
-reads Agent Registry records, distinct Agent Identity principals, Agent Runtime
-revisions, the admitted Memory Bank item, Gateway and authorization policy
-resources, the Model Armor template and persisted verdict-event, Firestore
-incident state, Pub/Sub resources, and the Cloud Trace record from live APIs.
-Any missing proof is shown as unavailable and fails readiness.
+```bash
+pnpm demo:site
+```
 
-The verified hybrid proof keeps the fictional process and raw OT protocols on
-the local Docker range. Agent Runtime, Registry, Identity, Gateway, Model Armor,
-Memory Bank, Firestore, Pub/Sub, Gemini 3.5, and Cloud Trace are managed Google
-Cloud resources. The local bridge and Control development process remain
-bounded prototype components; this is not evidence of production-plant control.
+Open [http://localhost:3000](http://localhost:3000). The site can run as a
+documentary without Docker or API keys.
 
-Run the complete exercise after starting both local stacks:
+### Attach the executable range
 
 ```bash
 pnpm demo:up
@@ -143,9 +215,96 @@ pnpm demo:proof
 pnpm demo:site
 ```
 
-The cockpit opens at `http://localhost:3000` and reaches the range through the
-same-origin `/api/royal-duke` development gateway.
-Run `pnpm demo:down` when finished.
+The cockpit reaches the localhost-only controller through the same-origin
+`/api/royal-duke` development gateway. Stop both stacks when finished:
 
-The generated evidence bundle is available from
-`GET /exercises/:exercise_id/bundle` and includes its own SHA-256 digest.
+```bash
+pnpm demo:down
+```
+
+The complete live-model recorder requires the configured managed Google Cloud
+fleet. Offline capture must be requested explicitly:
+
+```bash
+pnpm demo:record -- --allow-fallback
+```
+
+Read [`experience/royal-duke/README.md`](./experience/royal-duke/README.md) for
+the scenario, range fidelity, network boundaries, recording modes, and operator
+workflow.
+
+## Compiler diagnostics
+
+Refusal is part of the product. The compiler returns useful diagnostics instead
+of inventing missing policy.
+
+| Code | Diagnostic | Meaning |
+| --- | --- | --- |
+| `RBK-104` | `AMBIGUOUS_PREDICATE` | A consequential condition lacks a typed threshold or approved rubric |
+| `RBK-201` | `UNBOUNDED_RETRY` | A cycle lacks finite retry, exit, or backoff bounds |
+| `RBK-301` | `UNKNOWN_CAPABILITY` | An action is absent from the Capability Manifest |
+| `RBK-403` | `UNVERIFIED_MUTATION` | A write can complete without reaching verification |
+
+## Repository map
+
+| Path | Purpose |
+| --- | --- |
+| [`packages/schemas`](./packages/schemas) | Draft 2020-12 schemas for RBIR, capabilities, diagnostics, and RunbookBench |
+| [`packages/types`](./packages/types) | Shared TypeScript types and Zod schemas |
+| [`packages/compiler`](./packages/compiler) | Compiler, analyzer, linter, and `rbc` CLI |
+| [`packages/bench`](./packages/bench) | RunbookBench evaluator and metrics |
+| [`apps/control`](./apps/control) | Persisted RBIR state machine and orchestration |
+| [`apps/broker`](./apps/broker) | Policy enforcement, grants, idempotency, and reconciliation |
+| [`apps/royal-duke-worker`](./apps/royal-duke-worker) | Bounded Royal Duke capability adapter |
+| [`apps/console`](./apps/console) | React and Vite operator console |
+| [`agents/royal-duke-fleet`](./agents/royal-duke-fleet) | Managed defensive agent fleet |
+| [`experience/royal-duke`](./experience/royal-duke) | Attack cockpit, scenario contract, and OT-sim range |
+| [`fixtures`](./fixtures) | Runbooks, compile plans, manifests, and benchmark corpus |
+| [`infra/docker`](./infra/docker) | Firestore and Pub/Sub emulator stack |
+| [`infra/terraform`](./infra/terraform) | Google Cloud development infrastructure |
+
+This monorepo is the canonical source for Royal Duke. The historical SCLC
+checkout is a source mirror, not a second development target. See
+[`docs/REPOSITORY-MANAGEMENT.md`](./docs/REPOSITORY-MANAGEMENT.md).
+
+## Project documents
+
+| Document | Use it for |
+| --- | --- |
+| [`PROOF.md`](./PROOF.md) | Reproducible claims, evidence levels, and open proof gaps |
+| [`spec.md`](./spec.md) | RBIR v0.1, governance model, and security architecture |
+| [`testing.md`](./testing.md) | Test strategy and validation commands |
+| [`story.md`](./story.md) | Product narrative and demo framing |
+| [`diagrams/security-architecture.svg`](./diagrams/security-architecture.svg) | Security-boundary diagram |
+
+## Security boundary
+
+The intended guarantee is narrow and testable:
+
+> Malicious text cannot create capabilities or authority that the compiled
+> workflow does not already possess.
+
+Prompt injection can still mislead a delegated judgment node. That node has no
+tools, credentials, approval power, or direct process connection. Consequential
+actions still pass through compiled policy, a signed single-use grant, the
+Action Broker, a bounded adapter, and independent verification.
+
+Run the repository sensitivity guard before publishing changes:
+
+```bash
+pnpm check:sensitive
+```
+
+## Project status
+
+This is a personal hackathon and research implementation, not an industry
+standard, compliance certification, or production control system. The shortest
+path to understanding it is:
+
+```text
+Markdown -> reviewed plan -> RBIR -> validation -> runtime
+         -> bounded action -> independent verification
+```
+
+Start with `pnpm local:compile`, inspect the emitted RBIR, then run
+`pnpm local:smoke` and compare the result with [`PROOF.md`](./PROOF.md).
